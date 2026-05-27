@@ -81,21 +81,20 @@ function isAdmin(req, res, next) {
 // ================= HOME =================
 app.get('/', (req, res) => {
 
-    db.query(
-        "SELECT * FROM posts ORDER BY id DESC",
-        (err, results) => {
+    db.query("SELECT * FROM posts ORDER BY id DESC", (err, results) => {
 
-            if (err) {
-                console.log(err);
-                return res.send("Erreur accueil");
-            }
-
-            res.render('index', {
-                user: req.session.user,
-                posts: results
-            });
+        if (err) {
+            console.log("ERREUR MYSQL HOME:", err); // IMPORTANT
+            return res.status(500).send(err.message);
         }
-    );
+
+        res.render('index', {
+            user: req.session.user,
+            posts: results
+        });
+
+    });
+
 });
 
 app.get('/galerie', (req, res) => {
