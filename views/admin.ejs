@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Panel</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<header>
+   <h1>Admin Dashboard</h1>
+
+<p>Total utilisateurs : <%= stats.users %></p>
+<p>Total posts : <%= stats.posts %></p>
+<p>Total événements : <%= stats.events %></p>
+<p>Total images : <%= stats.images %></p>
+    <div class="card">
+        <h2>Gestion</h2>
+
+        <a href="/admin/membres">Gérer utilisateurs</a><br><br>
+
+        <a href="/admin/posts">Gérer publications</a><br><br>
+
+        <a href="/admin/events">Gérer événements</a><br><br>
+
+        <a href="/admin/gallery">Gérer galerie</a><br><br>
+
+        <a href="/admin/messages">Gérer messages</a>
+    </div>
+
+</div>
+<h1>Gestion Utilisateurs</h1>
+<% if (users && users.length > 0) { %>
+
+    <% users.forEach(user => { %>
+
+        <div class="card">
+            <%= user.nom %>
+        </div>
+
+    <% }) %>
+
+<% } else { %>
+
+    <p>Aucun utilisateur</p>
+
+<% } %>
+</body>
+</html>

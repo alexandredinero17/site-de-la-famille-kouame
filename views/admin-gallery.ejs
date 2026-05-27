@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Galerie</title>
+</head>
+<body>
+
+<h1>Gestion Galerie</h1>
+
+<% if(images.length > 0){ %>
+
+    <% images.forEach(image => { %>
+
+        <div style="margin:20px;">
+
+            <img src="<%= image.image %>" width="200">
+
+        </div>
+ <a href="/delete-image/<%= image.id %>" onclick="return confirm('Supprimer cette image ?')">
+    Supprimer
+</a>
+
+    <% }) %>
+
+<% } else { %>
+
+<p>Aucune image</p>
+
+<% } %>
+
+</body>
+</html>

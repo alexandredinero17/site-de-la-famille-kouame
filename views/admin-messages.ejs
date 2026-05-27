@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Messages</title>
+</head>
+<body>
+
+<h1>Messages Chat</h1>
+
+<% if(messages.length > 0){ %>
+
+    <% messages.forEach(msg => { %>
+
+        <div style="padding:10px;border-bottom:1px solid #ccc;">
+            <%= msg %>
+        </div>
+   <a href="/delete-message/<%= msg.id %>"onclick="return confirm('Supprimer cette image ?')">
+    Supprimer
+</a>
+
+    <% }) %>
+
+<% } else { %>
+
+<p>Aucun message</p>
+
+<% } %>
+
+</body>
+</html>

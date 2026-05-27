@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Users</title>
+</head>
+<body>
+
+<h1>Gestion Utilisateurs</h1>
+
+<% if(users.length > 0){ %>
+
+    <% users.forEach(user => { %>
+
+        <div style="border:1px solid #ccc;padding:10px;margin:10px;">
+
+            <h3><%= user.nom %></h3>
+
+            <p><%= user.email %></p>
+<a href="/delete-user/<%= user.id %>"
+   onclick="return confirm('Supprimer cet utilisateur ?')">
+    Supprimer
+</a>
+
+        </div>
+
+    <% }) %>
+
+<% } else { %>
+
+<p>Aucun utilisateur</p>
+
+<% } %>
+
+</body>
+</html>

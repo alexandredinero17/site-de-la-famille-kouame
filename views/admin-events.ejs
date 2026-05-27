@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Events</title>
+</head>
+<body>
+
+<h1>Gestion des événements</h1>
+
+<% if(events.length > 0){ %>
+
+    <% events.forEach(event => { %>
+
+        <div style="border:1px solid #ccc;padding:10px;margin:10px;">
+
+            <h3><%= event.title %></h3>
+
+            <p><%= event.description %></p>
+
+        </div>
+
+    <% }) %>
+
+<% } else { %>
+
+<p>Aucun événement</p>
+
+<% } %>
+
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Posts</title>
+</head>
+<body>
+
+<h1>Gestion des publications</h1>
+
+<% if(posts.length > 0){ %>
+
+    <% posts.forEach(post => { %>
+
+        <div style="border:1px solid #ccc;padding:10px;margin:10px;">
+
+            <h3><%= post.auteur %></h3>
+
+            <p><%= post.contenu %></p>
+
+            <a href="/delete-post/<%= post.id %>"onclick="return confirm('Supprimer cette image ?')">
+    Supprimer
+</a>
+
+        </div>
+
+    <% }) %>
+
+<% } else { %>
+
+<p>Aucune publication</p>
+
+<% } %>
+
+</body>
+</html>

@@ -1,0 +1,63 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Inscription</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<header>
+    <h1>Créer un compte</h1>
+</header>
+
+<div class="container">
+    <div class="card">
+        <form action="/register" method="POST">
+
+    <input type="text" name="nom" placeholder="Nom complet" required>
+
+    <input type="email" name="email" placeholder="Email" required>
+
+    <input type="text" name="telephone" placeholder="Téléphone">
+
+    <input type="text" name="profession" placeholder="Profession">
+
+  <select name="branche" required>
+
+    <option value="">Choisir une branche</option>
+
+    <option value="fils">Fils</option>
+
+    <option value="fille">Fille</option>
+
+    <option value="petit-fils">Petit-fils</option>
+
+    <option value="petite-fille">Petite-fille</option>
+
+    <option value="cousin">Cousin</option>
+
+    <option value="neveu">Neveu</option>
+
+    <option value="oncle">Oncle</option>
+
+    <option value="frere">Frère</option>
+
+    <option value="soeur">Soeur</option>
+
+</select>
+
+    <textarea name="description" placeholder="Parlez de vous"></textarea>
+
+    <input type="password" name="password" placeholder="Mot de passe" required>
+
+    <button type="submit">S'inscrire</button>
+
+</form>
+
+    </div>
+</div>
+
+</body>
+</html>

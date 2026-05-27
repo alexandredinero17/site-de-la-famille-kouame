@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<header>
+
+    <h1>Bienvenue <%= user.nom %></h1>
+
+    <nav>
+        <a href="/">Accueil</a>
+        <a href="/membres">Membres</a>
+        <a href="/galerie">Galerie</a>
+        <a href="/events">Événements</a>
+        <a href="/messages">Messages</a>
+
+        <% if (user.role === "admin") { %>
+            <a href="/admin">Admin</a>
+        <% } %>
+
+        <a href="/logout">Déconnexion</a>
+    </nav>
+
+</header>
+
+<div class="container">
+
+    <div class="card">
+
+        <h2>Créer une publication</h2>
+
+        <form action="/post" method="POST">
+
+            <textarea
+                name="contenu"
+                placeholder="Exprimez-vous..."
+                required>
+            </textarea>
+
+            <button type="submit">
+                Publier
+            </button>
+
+        </form>
+
+    </div>
+
+    <h2>Publications</h2>
+
+    <% if (posts.length > 0) { %>
+
+        <% posts.forEach(post => { %>
+
+            <div class="card">
+
+                <h3><%= post.auteur %></h3>
+
+                <p><%= post.contenu %></p>
+
+                <small>
+                    <%= post.date %>
+                </small>
+
+            </div>
+
+        <% }) %>
+
+    <% } else { %>
+
+        <p>Aucune publication</p>
+
+    <% } %>
+
+</div>
+
+</body>
+</html>

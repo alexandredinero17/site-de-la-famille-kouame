@@ -1,0 +1,72 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Famille KOUAME</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<header>
+    <h1>LA GRANDE FAMILLE KOUAME</h1>
+<nav>
+    <% if(user){ %>
+    <a href="/">Accueil</a>
+
+    <a href="/membres">Membres</a>
+
+    <a href="/galerie">Galerie</a>
+
+    <a href="/events">Événements</a>
+
+    <a href="/messages">Messages</a>
+
+        <a href="/dashboard">Dashboard</a>
+
+        <a href="/logout">Déconnexion</a>
+
+    <% } else { %>
+
+        <a href="/login">Connexion</a>
+
+        <a href="/register">Inscription</a>
+
+    <% } %>
+</nav>
+</header>
+
+<section class="hero">
+    <h1>Le réseau social familial</h1>
+    <p>Partagez vos souvenirs et vos événements</p>
+
+    <% if(!user){ %>
+        <a href="/register" class="btn">Créer un compte</a>
+    <% } %>
+</section>
+
+<div class="container">
+    <h2>Dernières publications</h2>
+<% if (posts && posts.length > 0) { %>
+
+    <% posts.forEach(post => { %>
+        <div class="card">
+            <h3><%= post.auteur %></h3>
+            <p><%= post.contenu %></p>
+            <small><%= post.date %></small>
+        </div>
+    <% }) %>
+
+<% } else { %>
+
+    <p>Aucune publication pour le moment</p>
+
+<% } %>
+</div>
+
+<footer>
+    © 2026 - Famille KOUAME
+</footer>
+
+</body>
+</html>

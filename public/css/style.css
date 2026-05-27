@@ -1,0 +1,194 @@
+body {
+    background-image: url('public/images/background.png');
+
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+
+    margin: 0;
+    padding: 0;
+}
+header {
+    background: rgba(0,0,0,0.7);
+    padding: 15px;
+
+    backdrop-filter: blur(10px);
+
+    animation: topDown 0.8s ease;
+}
+
+@keyframes topDown {
+
+    from {
+        transform: translateY(-100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}
+nav a {
+    color: white;
+    text-decoration: none;
+
+    margin: 0 10px;
+
+    transition: 0.3s;
+}
+
+nav a:hover {
+    color: #3498db;
+}
+.container{
+    width:90%;
+    max-width:1000px;
+    margin:auto;
+    padding:20px;
+}
+
+.hero{
+    background:linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5));
+    background-size:cover;
+    background-position:center;
+    height:70vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    flex-direction:column;
+    color:white;
+    text-align:center;
+}
+
+.hero h1{
+    font-size:55px;
+}
+
+.btn{
+    background:gold;
+    color:black;
+    padding:12px 25px;
+    border:none;
+    border-radius:8px;
+    text-decoration:none;
+    font-weight:bold;
+}
+.card {
+    background: rgba(255,255,255,0.9);
+    border-radius: 15px;
+    padding: 20px;
+    margin: 20px 0;
+
+    transition: 0.3s ease;
+    animation: slideUp 0.7s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+@keyframes slideUp {
+
+    from {
+        transform: translateY(40px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+input,
+textarea {
+    width: 100%;
+    padding: 12px;
+
+    border-radius: 10px;
+    border: 1px solid #484bff;
+
+    transition: 0.3s ease;
+}
+.gallery-description {
+
+    margin-top: 10px;
+
+    font-size: 15px;
+
+    color: #333;
+
+    line-height: 1.5;
+}
+
+input:focus,
+textarea:focus {
+
+    border-color: #3498db;
+
+    box-shadow: 0 0 10px rgba(52,152,219,0.5);
+
+    outline: none;
+}
+textarea{
+    height:120px;
+}
+
+button {
+    background: #3498db;
+    color: white;
+
+    border: none;
+    padding: 12px 20px;
+    border-radius: 10px;
+
+    cursor: pointer;
+
+    transition: 0.3s ease;
+}
+
+button:hover {
+    transform: scale(1.05);
+    background: #2980b9;
+}
+
+footer{
+    background:black;
+    color:white;
+    text-align:center;
+    padding:20px;
+    margin-top:40px;
+}
+.gallery img {
+    width: 250px;
+    border-radius: 15px;
+
+    transition: 0.4s ease;
+
+    margin: 10px;
+}
+
+.gallery img:hover {
+    transform: scale(1.05) rotate(1deg);
+
+    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+}
+.logo {
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+
+    0% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+
+    100% {
+        transform: translateY(0px);
+    }
+}

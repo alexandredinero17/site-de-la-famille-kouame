@@ -1,0 +1,73 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Galerie</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<header>
+    <h1>Galerie Familiale</h1>
+</header>
+
+<div class="container">
+    <div class="card">
+        <p>Ajoutez ici les photos de votre famille, cérémonies et souvenirs.</p>
+<form action="/upload-image"
+      method="POST"
+      enctype="multipart/form-data">
+
+    <input type="file"
+           name="image"
+           required>
+
+    <textarea
+        name="description"
+        placeholder="Ajouter une description...">
+    </textarea>
+
+    <button type="submit">
+        Publier
+    </button>
+
+</form>
+    </div>
+
+<hr>
+<h1>Galerie</h1>
+
+
+<div class="gallery">
+
+<% images.forEach(img => { %>
+
+    <div class="card">
+
+        <p>
+            <strong>
+                <%= img.user %>
+            </strong>
+        </p>
+
+        <img
+            src="<%= img.image %>"
+            width="250"
+        >
+
+        <p class="gallery-description">
+            <%= img.description %>
+        </p>
+
+    </div>
+
+<% }) %>
+
+</div>
+<footer>
+    LA GRANDE FAMILLE KOUAME
+</footer>
+
+</body>
+</html>

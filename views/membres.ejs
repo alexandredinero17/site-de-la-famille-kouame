@@ -1,0 +1,45 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Membres</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<header>
+    <h1>Nos Membres</h1>
+</header>
+       <div class="container">
+
+    <% membres.forEach(membre => { %>
+
+        <div class="card">
+
+            <img src="" alt="photo">
+
+            <h2><%= membre.nom %></h2>
+
+            <p><strong>Email :</strong> <%= membre.email %></p>
+
+            <p><strong>Téléphone :</strong> <%= membre.telephone %></p>
+
+            <p><strong>Profession :</strong> <%= membre.profession %></p>
+
+            <p><strong>Branche :</strong> <%= membre.branche %></p>
+
+            <p><%= membre.description %></p>
+
+        </div>
+
+    <% }) %>
+
+</div>
+
+<footer>
+    LA GRANDE FAMILLE KOUAME
+</footer>
+
+</body>
+</html>
