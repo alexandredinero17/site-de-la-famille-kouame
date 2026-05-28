@@ -19,11 +19,12 @@
             <p><%= event.description %></p>
 
         </div>
-<form action="/delete-event/<%= event.id %>" method="POST" onclick="return confirm('Supprimer cet événement ?')"></form>>
-
+<form action="/delete-event/<%= event.id %>" method="POST" onclick="return confirm('Supprimer cet événement ?')">
     <button type="submit">
         Supprimer
     </button>
+</form>
+
     <% }) %>
 
 <% } else { %>
