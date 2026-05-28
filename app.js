@@ -59,8 +59,7 @@ app.use(session({
     cookie: {
         secure: false,
         httpOnly: true,
-        sameSite: "strict",
-        maxAge: 1000 * 60 * 60 * 24
+        maxAge: 1000 * 60 * 60 * 24 * 30
     }
 }));
 
@@ -283,20 +282,44 @@ app.post('/register', async (req, res) => {
 
 // ================= LOGIN =================
 app.post('/login', (req, res) => {
-    const { email, password } = req.body;
 
-    db.query("SELECT * FROM users WHERE email=$1", [email], async (err, result) => {
-        if (err) return res.status(500).send(err.message);
-        if (result.rows.length === 0) return res.send("Utilisateur introuvable");
+    const { email, password, remember } = req.body;
 
-        const user = result.rows[0];
-        const valid = await bcrypt.compare(password, user.password);
+    db.query(
+        "SELECT * FROM users WHERE email = $1",
+        [email],
+        async (err, results) => {
 
-        if (!valid) return res.send("Mot de passe incorrect");
+            if (err) {
+                console.log(err);
+                return res.send("Erreur serveur");
+            }
 
-        req.session.user = user;
-        res.redirect('/dashboard');
-    });
+            if (results.length === 0) {
+                return res.send("Utilisateur introuvable");
+            }
+
+            const user = results[0];
+
+            const valid = await bcrypt.compare(password, user.password);
+
+            if (!valid) {
+                return res.send("Mot de passe incorrect");
+            }
+
+            // 🔥 SESSION
+            req.session.user = user;
+
+            // ⭐ IMPORTANT : durée de session
+            if (remember) {
+                req.session.cookie.maxAge = 1000 * 60 * 60 * 24 * 30; // 30 jours
+            } else {
+                req.session.cookie.maxAge = 1000 * 60 * 60 * 24; // 1 jour
+            }
+
+            res.redirect('/dashboard');
+        }
+    );
 });
 
 // ================= DASHBOARD =================
@@ -429,15 +452,18 @@ app.get('/chat/:id', async (req, res) => {
         return res.redirect('/login');
     }
 
-    try {
+    const roomId = req.params.id;
 
- const roomId = req.params.id || 0;
+    if (!roomId) {
+        return res.status(400).send("Room invalide");
+    }
+
+    try {
 
         const result = await db.query(
             `SELECT * FROM messages 
              WHERE conversation_id = $1 
-             ORDER BY id ASC 
-             LIMIT 50`,
+             ORDER BY id ASC`,
             [roomId]
         );
 
@@ -448,11 +474,8 @@ app.get('/chat/:id', async (req, res) => {
         });
 
     } catch (err) {
+        console.log("CHAT ERROR:", err.message);
         return res.status(500).send("Erreur chat serveur");
-            console.log("FULL CHAT ERROR:", err);
-    console.log("ROOM ID:", req.params.id);
-    console.log("USER:", req.session.user);
-    return res.status(500).send(err.message);
     }
 });
 // ================= LOGOUT =================
