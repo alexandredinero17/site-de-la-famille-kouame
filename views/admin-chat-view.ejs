@@ -1,0 +1,19 @@
+<h1>📨 Messages de la conversation</h1>
+
+<% messages.forEach(m => { %>
+
+    <div style="padding:10px; border-bottom:1px solid #ddd;">
+        <b><%= m.sender %></b> : 
+        <%= m.content %>
+
+        <% if (m.media_url) { %>
+            <br>
+            <img src="<%= m.media_url %>" width="150">
+        <% } %>
+
+        <form method="POST" action="/admin/delete-message/<%= m.id %>">
+            <button>Supprimer</button>
+        </form>
+    </div>
+
+<% }) %>

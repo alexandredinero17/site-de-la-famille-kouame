@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat</title>
+
+    <style>
+        body {
+            font-family: Arial;
+            background: #0b141a;
+            color: white;
+            margin: 0;
+        }
+
+        #chat-box {
+            height: 80vh;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .msg {
+            padding: 10px;
+            margin: 5px;
+            border-radius: 10px;
+            max-width: 60%;
+        }
+
+        .me {
+            background: #005c4b;
+            margin-left: auto;
+        }
+
+        .other {
+            background: #202c33;
+        }
+
+        #input {
+            display: flex;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background: #111;
+            padding: 10px;
+        }
+
+        #msg {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 20px;
+        }
+
+        button {
+            margin-left: 10px;
+            background: #00a884;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 20px;
+            color: white;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+<h3 style="padding:10px;">
+    Chat avec <%= receiver %>
+</h3>
+<div id="status"></div>
+<div id="chat-box"></div>
+
+<input id="msg" placeholder="Message..." />
+<input type="file" id="file" />
+<button onclick="send()">Envoyer</button>
+
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+const socket = io();
+
+const sender = "<%= user.nom %>";
+const receiver = "<%= receiver %>";
+const conversation_id = "<%= conversation_id %>";
+
+socket.emit("join", sender);
+
+// ONLINE USERS
+socket.on("online-users", (users) => {
+    document.getElementById("status").innerHTML =
+        users.includes(receiver) ? "🟢 En ligne" : "⚫ Hors ligne";
+});
+
+// MESSAGE
+socket.on("new-message", (msg) => {
+
+    const div = document.createElement("div");
+    div.classList.add("msg");
+
+    let html = "";
+
+    if (msg.type === "text") {
+        html = msg.content;
+    }
+
+    if (msg.type === "image") {
+        html = `<img src="${msg.media_url}" width="200">`;
+    }
+
+    if (msg.type === "audio") {
+        html = `<audio controls src="${msg.media_url}"></audio>`;
+    }
+
+    // ✔✔ read status
+    const ticks = msg.is_read ? "✔✔" : "✔";
+
+    div.innerHTML = `
+        <div>${msg.sender}</div>
+        <div>${html}</div>
+        <small>${ticks}</small>
+    `;
+
+    document.getElementById("chat-box").appendChild(div);
+});
+
+// ENVOI MESSAGE
+async function send() {
+
+    const file = document.getElementById("file").files[0];
+    let type = "text";
+    let media_url = null;
+    let content = document.getElementById("msg").value;
+
+    if (file) {
+
+        const form = new FormData();
+        form.append("file", file);
+
+        const res = await fetch("/upload-media", {
+            method: "POST",
+            body: form
+        });
+
+        const data = await res.json();
+        media_url = data.url;
+
+        if (file.type.startsWith("image")) type = "image";
+        if (file.type.startsWith("audio")) type = "audio";
+    }
+
+    socket.emit("send-message", {
+        conversation_id,
+        sender,
+        receiver,
+        type,
+        content,
+        media_url
+    });
+
+    document.getElementById("msg").value = "";
+}
+</script>
+</body>
+</html>

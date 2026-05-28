@@ -1,0 +1,17 @@
+<h1>💬 Gestion des chats</h1>
+
+<% conversations.forEach(c => { %>
+
+    <div style="padding:10px; border-bottom:1px solid #ccc;">
+        <p>
+            <b><%= c.user1 %></b> ↔ <b><%= c.user2 %></b>
+        </p>
+
+        <a href="/admin/chat/<%= c.id %>">Voir messages</a>
+
+        <form method="POST" action="/admin/delete-conversation/<%= c.id %>">
+            <button>Supprimer</button>
+        </form>
+    </div>
+
+<% }) %>

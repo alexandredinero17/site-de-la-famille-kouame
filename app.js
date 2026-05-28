@@ -71,13 +71,94 @@ function isAdmin(req, res, next) {
 }
 
 // ================= SOCKET.IO =================
-io.on('connection', (socket) => {
-    socket.on('chat-message', (msg) => {
-        io.emit('chat-message', {
-            user: socket.id,
-            message: xss(msg)
-        });
+let onlineUsers = {};
+
+io.on("connection", (socket) => {
+
+    // USER ONLINE
+    socket.on("join", (username) => {
+        onlineUsers[username] = socket.id;
+        io.emit("online-users", Object.keys(onlineUsers));
     });
+
+    // SEND MESSAGE LEVEL UP
+    socket.on("send-message", async (data) => {
+
+        const {
+            conversation_id,
+            sender,
+            receiver,
+            type,
+            content,
+            media_url
+        } = data;
+
+        const result = await db.query(
+            `INSERT INTO messages 
+            (conversation_id, sender, type, content, media_url)
+            VALUES ($1,$2,$3,$4,$5)
+            RETURNING *`,
+            [conversation_id, sender, type, content, media_url]
+        );
+
+        const message = result.rows[0];
+
+        // envoyer au receiver s’il est online
+        const receiverSocket = onlineUsers[receiver];
+
+        if (receiverSocket) {
+            io.to(receiverSocket).emit("new-message", message);
+        }
+
+        // envoyer aussi à l’expéditeur
+        io.to(socket.id).emit("new-message", message);
+    });
+
+    // MESSAGE LU ✔✔
+    socket.on("read-message", async (messageId) => {
+        await db.query(
+            "UPDATE messages SET is_read = true WHERE id=$1",
+            [messageId]
+        );
+    });
+
+    // DISCONNECT
+    socket.on("disconnect", () => {
+        for (let user in onlineUsers) {
+            if (onlineUsers[user] === socket.id) {
+                delete onlineUsers[user];
+                break;
+            }
+        }
+        io.emit("online-users", Object.keys(onlineUsers));
+    });
+});
+const storage = multer.diskStorage({
+    destination: "public/uploads",
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + "-" + file.originalname);
+    }
+});
+
+const upload = multer({ dest: "public/uploads" });
+
+app.post("/upload-media", upload.single("file"), (req, res) => {
+
+    res.json({
+        url: "/uploads/" + req.file.filename
+    });
+});
+app.get('/conversations', async (req, res) => {
+
+    const user = req.session.user.nom;
+
+    const result = await db.query(
+        `SELECT * FROM conversations 
+         WHERE user1=$1 OR user2=$1`,
+        [user]
+    );
+
+    res.json(result.rows);
 });
 
 // ================= HOME =================
@@ -167,15 +248,48 @@ app.get('/events', (req, res) => {
 });
 
 // ================= MESSAGES =================
-let messages = [];
-app.get('/messages', (req, res) => {
-    if (!req.session.user) return res.redirect('/login');
-    res.render('messages', { user: req.session.user, messages });
-});
+
 
 // ================= CHAT =================
 app.get('/chat', (req, res) => {
     res.render('chat', { user: req.session.user });
+    if (!req.session.user) {
+    return res.redirect('/login');
+}
+});
+app.get('/chat/:user', async (req, res) => {
+
+    if (!req.session.user) {
+        return res.redirect('/login');
+    }
+
+    const user1 = req.session.user.nom;
+    const user2 = req.params.user;
+
+    // chercher conversation existante
+    let conv = await db.query(
+        `SELECT * FROM conversations 
+         WHERE (user1=$1 AND user2=$2) 
+         OR (user1=$2 AND user2=$1)`,
+        [user1, user2]
+    );
+
+    // si elle n'existe pas → création
+    if (conv.rows.length === 0) {
+        conv = await db.query(
+            `INSERT INTO conversations (user1, user2)
+             VALUES ($1,$2) RETURNING *`,
+            [user1, user2]
+        );
+    }
+
+    const conversation = conv.rows[0];
+
+    res.render('chat', {
+        user: req.session.user,
+        receiver: user2,
+        conversation_id: conversation.id
+    });
 });
 
 // ================= LOGOUT =================
@@ -306,8 +420,25 @@ app.get('/admin/gallery', isAdmin, (req, res) => {
         }
     );
 });
-app.get('/admin/messages', isAdmin, (req, res) => {
-    res.render('admin-messages', { messages });
+app.get('/admin/chats', isAdmin, async (req, res) => {
+
+    const conv = await db.query(
+        "SELECT * FROM conversations ORDER BY id DESC"
+    );
+
+    res.render('admin-chats', {
+        conversations: conv.rows,
+        user: req.session.user
+    });
+});
+app.post('/admin/delete-message/:id', isAdmin, async (req, res) => {
+
+    await db.query(
+        "DELETE FROM messages WHERE id=$1",
+        [req.params.id]
+    );
+
+    res.redirect('back');
 });
 
 // ================= START SERVER =================

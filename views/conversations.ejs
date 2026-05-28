@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Conversations</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: #111;
+            color: white;
+        }
+
+        .chat {
+            padding: 15px;
+            border-bottom: 1px solid #333;
+            cursor: pointer;
+        }
+
+        .chat:hover {
+            background: #222;
+        }
+
+        .name {
+            font-weight: bold;
+        }
+
+        a {
+            color: white;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+
+<h2>💬 Mes conversations</h2>
+
+<!-- LISTE DES USERS / CONVERSATIONS -->
+<% users.forEach(user => { %>
+
+    <a href="/chat/<%= user.nom %>">
+        <div class="chat">
+            <div class="name"><%= user.nom %></div>
+            <div>Cliquer pour discuter</div>
+        </div>
+    </a>
+
+<% }) %>
+
+</body>
+</html>
