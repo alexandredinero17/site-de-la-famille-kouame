@@ -79,7 +79,6 @@ io.on("connection", (socket) => {
     socket.on("sendMessage", async (data) => {
 
         const { roomId, message, sender } = data;
-const roomId = String(data.roomId);
         if (!roomId || !message) return;
 
         try {
