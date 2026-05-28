@@ -7,7 +7,9 @@ const db = new Pool({
     database: process.env.DB_NAME,
     port: 5432,
     ssl: { rejectUnauthorized: false },
-    family: 4
+    max: 10,        // 🔥 important
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000
 });
 
 db.on('connect', () => {

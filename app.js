@@ -281,47 +281,39 @@ app.post('/register', async (req, res) => {
 });
 
 // ================= LOGIN =================
-app.post('/login', (req, res) => {
+app.post('/login', async (req, res) => {
 
-    const { email, password, remember } = req.body;
+    const { email, password } = req.body;
 
-    db.query(
-        "SELECT * FROM users WHERE email = $1",
-        [email],
-        async (err, results) => {
+    try {
 
-            if (err) {
-                console.log(err);
-                return res.send("Erreur serveur");
-            }
+        const result = await db.query(
+            "SELECT id, nom, email, password, role FROM users WHERE email = $1 LIMIT 1",
+            [email]
+        );
 
-            if (results.length === 0) {
-                return res.send("Utilisateur introuvable");
-            }
-
-            const user = results[0];
-
-            const valid = await bcrypt.compare(password, user.password);
-
-            if (!valid) {
-                return res.send("Mot de passe incorrect");
-            }
-
-            // 🔥 SESSION
-            req.session.user = user;
-
-            // ⭐ IMPORTANT : durée de session
-            if (remember) {
-                req.session.cookie.maxAge = 1000 * 60 * 60 * 24 * 30; // 30 jours
-            } else {
-                req.session.cookie.maxAge = 1000 * 60 * 60 * 24; // 1 jour
-            }
-
-            res.redirect('/dashboard');
+        if (result.rows.length === 0) {
+            return res.send("Utilisateur introuvable");
         }
-    );
-});
 
+        const user = result.rows[0];
+
+        const valid = await bcrypt.compare(password, user.password);
+
+        if (!valid) {
+            return res.send("Mot de passe incorrect");
+        }
+
+        req.session.user = user;
+
+        res.redirect('/dashboard');
+
+    } catch (err) {
+        console.log("LOGIN ERROR:", err);
+        res.status(500).send("Erreur serveur");
+    }
+    app.set('trust proxy', 1);
+});
 // ================= DASHBOARD =================
 app.get('/dashboard', (req, res) => {
     if (!req.session.user) return res.redirect('/login');
