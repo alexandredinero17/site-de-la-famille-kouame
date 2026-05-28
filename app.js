@@ -27,13 +27,20 @@ app.use(
 app.use(morgan('dev'));
 
 // ================= MYSQL =================
-const db = mysql.createConnection({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    port: 3306
+const { Pool } = require('pg');
+
+const pool = new Pool({
+  user: 'postgres',
+  host: 'db.xxxxxxxxx.supabase.co',
+  database: 'postgres',
+  password: 'TON_MOT_DE_PASSE',
+  port: 5432,
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
+
+module.exports = pool;
 
 db.connect((err) => {
     if (err) {

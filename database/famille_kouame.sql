@@ -109,7 +109,7 @@ CREATE TABLE IF NOT EXISTS `users` (
 --
 
 INSERT INTO `users` (`id`, `nom`, `email`, `telephone`, `profession`, `branche`, `description`, `password`, `role`) VALUES
-(1, 'Kacou konin prince alexandre', 'kacoukoninprincealexandre@gmail.com', '0545756013', 'étudiant', 'Fils ainé de Kacou jean noel', 'j\'aime beaucoup tout', '$2b$10$mfTb0YPMdtPTcwHzaY./Q.NmSCt7BeHfSWcoqycdrHKtP3CEuiD9e', 'admin');
+('1', 'Kacou konin prince alexandre', 'kacoukoninprincealexandre@gmail.com', '0545756013', 'étudiant', 'Fils ainé de Kacou jean noel', 'petit fils', '$2b$10$mfTb0YPMdtPTcwHzaY./Q.NmSCt7BeHfSWcoqycdrHKtP3CEuiD9e', 'admin');
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
