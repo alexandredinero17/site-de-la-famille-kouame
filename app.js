@@ -168,6 +168,35 @@ app.get('/', (req, res) => {
         res.render('index', { user: req.session.user, posts: result.rows });
     });
 });
+app.post('/post', async (req, res) => {
+
+    if (!req.session.user) {
+        return res.redirect('/login');
+    }
+
+    try {
+
+        const contenu = xss(req.body.contenu);
+
+        await db.query(
+            `INSERT INTO posts (auteur, contenu, date)
+             VALUES ($1, $2, $3)`,
+            [
+                req.session.user.nom,
+                contenu,
+                new Date()
+            ]
+        );
+
+        res.redirect('/dashboard');
+
+    } catch (err) {
+
+        console.log("POST ERROR:", err);
+
+        res.status(500).send("Erreur publication");
+    }
+});
 
 // ================= AUTH PAGES =================
 app.get('/login', (req, res) => res.render('login'));
