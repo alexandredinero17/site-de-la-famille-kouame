@@ -72,20 +72,26 @@ function isAdmin(req, res, next) {
 // ================= SOCKET.IO =================
 io.on("connection", (socket) => {
 
+    socket.on("joinRoom", (roomId) => {
+        socket.join(roomId);
+    });
+
     socket.on("sendMessage", async (data) => {
 
         const { roomId, message, sender } = data;
 
+        if (!message || !roomId) return;
+
         try {
 
-            // 1. SAVE EN BASE (TRÈS IMPORTANT)
+            // 1. SAVE EN BASE (OBLIGATOIRE)
             await db.query(
                 `INSERT INTO messages (conversation_id, sender, message)
                  VALUES ($1, $2, $3)`,
                 [roomId, sender, message]
             );
 
-            // 2. BROADCAST
+            // 2. ENVOI LIVE
             io.to(roomId).emit("newMessage", {
                 sender,
                 message
@@ -398,20 +404,31 @@ app.get('/chat', (req, res) => {
 });
 app.get('/chat/:id', async (req, res) => {
 
-    const roomId = req.params.id;
+    if (!req.session.user) {
+        return res.redirect('/login');
+    }
 
-    const result = await db.query(
-        `SELECT * FROM messages 
-         WHERE conversation_id = $1 
-         ORDER BY id ASC`,
-        [roomId]
-    );
+    try {
 
-    res.render("chat", {
-        messages: result.rows,
-        roomId,
-        user: req.session.user
-    });
+        const roomId = req.params.id;
+
+        const result = await db.query(
+            `SELECT * FROM messages 
+             WHERE conversation_id = $1 
+             ORDER BY id ASC`,
+            [roomId]
+        );
+
+        res.render("chat", {
+            messages: result.rows,
+            roomId,
+            user: req.session.user
+        });
+
+    } catch (err) {
+        console.log("CHAT ERROR:", err);
+        return res.status(500).send("Erreur chat serveur");
+    }
 });
 // ================= LOGOUT =================
 app.get('/logout', (req, res) => {

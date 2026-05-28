@@ -114,10 +114,10 @@ button {
 <script>
 const socket = io();
 
-// rejoindre room
+// join room
 socket.emit("joinRoom", "<%= roomId %>");
 
-// envoyer message
+// send message
 function sendMessage() {
 
     const msg = document.getElementById("msg").value;
@@ -133,13 +133,12 @@ function sendMessage() {
     document.getElementById("msg").value = "";
 }
 
-// recevoir message
+// receive message
 socket.on("newMessage", (data) => {
 
     const chat = document.getElementById("chat-box");
 
     const div = document.createElement("div");
-
     div.classList.add("msg");
 
     if (data.sender === "<%= user.nom %>") {
@@ -148,70 +147,11 @@ socket.on("newMessage", (data) => {
         div.classList.add("other");
     }
 
-    div.innerHTML = `
-        <b>${data.sender}</b><br>
-        ${data.message}
-    `;
+    div.innerHTML = `<b>${data.sender}</b><br>${data.message}`;
 
     chat.appendChild(div);
 
     chat.scrollTop = chat.scrollHeight;
-});
-/* 🔔 NOTIFICATION PRO */
-socket.on("notification", (data) => {
-
-    showNotification("📩 " + data.sender + " a envoyé un message");
-
-});
-
-/* NOTIFICATION SYSTEM (PRO) */
-function showNotification(text) {
-
-    // badge visuel simple
-    const status = document.getElementById("status");
-
-    status.innerText = text;
-    status.style.background = "#00a884";
-    status.style.padding = "5px";
-    status.style.borderRadius = "5px";
-
-    setTimeout(() => {
-        status.innerText = "";
-        status.style.background = "none";
-    }, 3000);
-}
-
-/* 🔥 TYPING SYSTEM */
-let typingTimeout;
-
-document.getElementById("msg").addEventListener("input", () => {
-
-    socket.emit("typing", { roomId: "<%= roomId %>", user: "<%= user.nom %>" });
-
-    clearTimeout(typingTimeout);
-
-    typingTimeout = setTimeout(() => {
-        socket.emit("stopTyping", { roomId: "<%= roomId %>", user: "<%= user.nom %>" });
-    }, 1000);
-
-});
-
-socket.on("typing", (data) => {
-
-    document.getElementById("status").innerText =
-        data.user + " est en train d'écrire...";
-
-});
-
-socket.on("stopTyping", () => {
-    document.getElementById("status").innerText = "";
-});
-
-/* 🟢 ONLINE STATUS */
-socket.on("userStatus", (data) => {
-
-    console.log(data.user + " : " + data.status);
-
 });
 
 </script>
