@@ -3,7 +3,7 @@ const session = require('express-session');
 const bcrypt = require('bcryptjs');
 const fs = require('fs');
 const path = require('path');
-const mysql = require('mysql2');
+const { Pool } = require('pg');
 const http = require('http');
 const { Server } = require('socket.io');
 const multer = require("multer");
@@ -16,7 +16,7 @@ const morgan = require('morgan');
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
-
+require('dotenv').config();
 
 // ================= SECURITY =================
 app.use(
@@ -27,26 +27,41 @@ app.use(
 app.use(morgan('dev'));
 
 // ================= MYSQL =================
-const { Pool } = require('pg');
 
-const pool = new Pool({
-  user: 'postgres',
-  host: 'db.xxxxxxxxx.supabase.co',
-  database: 'postgres',
-  password: 'TON_MOT_DE_PASSE',
-  port: 5432,
-  ssl: {
-    rejectUnauthorized: false
-  }
+const db = new Pool({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    port: 5432,
+    ssl: {
+        rejectUnauthorized: false
+    }
 });
 
-module.exports = pool;
+app.get('/users', async (req, res) => {
+
+    try {
+
+        const result = await db.query('SELECT * FROM users');
+
+        res.json(result.rows);
+
+    } catch(err) {
+
+        console.log(err);
+
+        res.status(500).send('Erreur serveur');
+
+    }
+
+});
 
 db.connect((err) => {
     if (err) {
-        console.log('Erreur MySQL :', err);
+        console.log('Erreur PostgreSQL :', err);
     } else {
-        console.log('MySQL connecté');
+        console.log('PostgreSQL connecté');
     }
 });
 name: 'famille.sid',
@@ -91,7 +106,7 @@ app.get('/', (req, res) => {
     db.query("SELECT * FROM posts ORDER BY id DESC", (err, results) => {
 
         if (err) {
-            console.log("ERREUR MYSQL HOME:", err); // IMPORTANT
+            console.log("ERREUR POSTGRESQL HOME:", err); // IMPORTANT
             return res.status(500).send(err.message);
         }
 
@@ -111,7 +126,7 @@ app.get('/galerie', (req, res) => {
         (err, results) => {
 
             if (err) {
-                console.log(err);
+                console.log("ERREUR POSTGRESQL GALERIE:", err);
                 return res.send("Erreur chargement galerie");
             }
 
@@ -135,7 +150,7 @@ app.get('/membres', (req, res) => {
         (err, results) => {
 
             if (err) {
-                console.log(err);
+                console.log("ERREUR POSTGRESQL MEMBRES:", err);
                 return res.send("Erreur chargement membres");
             }
 
@@ -205,7 +220,7 @@ if (!branchesAutorisees.includes(branche)) {
             (err) => {
 
                 if (err) {
-                    console.log(err);
+                    console.log("ERREUR POSTGRESQL INSCRIPTION:", err);
                     return res.send("Erreur inscription");
                 }
 
@@ -247,7 +262,7 @@ app.post('/login', (req, res) => {
         async (err, results) => {
 
             if (err) {
-                console.log(err);
+                console.log("ERREUR POSTGRESQL LOGIN:", err);
                 return res.send("Erreur serveur");
             }
 
@@ -282,7 +297,7 @@ app.get('/dashboard', (req, res) => {
         (err, results) => {
 
             if (err) {
-                console.log(err);
+                console.log("ERREUR POSTGRESQL DASHBOARD:", err);
                 return res.send("Erreur chargement posts");
             }
 
@@ -317,7 +332,7 @@ app.post('/post', (req, res) => {
         (err) => {
 
             if (err) {
-                console.log(err);
+                console.log("ERREUR POSTGRESQL PUBLICATION:", err);
                 return res.send("Erreur publication");
             }
 
@@ -334,7 +349,7 @@ app.get("/events", (req, res) => {
         (err, results) => {
 
             if (err) {
-                console.log(err);
+                console.log("ERREUR POSTGRESQL EVENTS:", err);
                 return res.send("Erreur chargement events");
             }
 
@@ -370,7 +385,7 @@ app.post("/add-event", (req, res) => {
         (err) => {
 
             if (err) {
-                console.log(err);
+                console.log("ERREUR POSTGRESQL ADD-EVENT:", err);
                 return res.send("Erreur ajout event");
             }
 
@@ -434,7 +449,7 @@ app.post('/upload-image', upload.single('image'), (req, res) => {
         (err) => {
 
             if (err) {
-                console.log(err);
+                console.log("ERREUR POSTGRESQL UPLOAD:", err);
                 return res.send("Erreur upload");
             }
 
@@ -467,7 +482,7 @@ app.get('/admin', isAdmin, (req, res) => {
         (err, usersResult) => {
 
             if (err) {
-                console.log(err);
+                console.log("ERREUR POSTGRESQL ADMIN:", err);
                 return res.send("Erreur users");
             }
 
@@ -478,7 +493,7 @@ app.get('/admin', isAdmin, (req, res) => {
                 (err, postsResult) => {
 
                     if (err) {
-                        console.log(err);
+                        console.log("ERREUR POSTGRESQL ADMIN:", err);
                         return res.send("Erreur posts");
                     }
 
@@ -489,7 +504,7 @@ app.get('/admin', isAdmin, (req, res) => {
                         (err, eventsResult) => {
 
                             if (err) {
-                                console.log(err);
+                                console.log("ERREUR POSTGRESQL ADMIN:", err);
                                 return res.send("Erreur events");
                             }
 
@@ -500,7 +515,7 @@ app.get('/admin', isAdmin, (req, res) => {
                                 (err, galerieResult) => {
 
                                     if (err) {
-                                        console.log(err);
+                                        console.log("ERREUR POSTGRESQL ADMIN:", err);
                                         return res.send("Erreur galerie");
                                     }
 
@@ -512,7 +527,7 @@ app.get('/admin', isAdmin, (req, res) => {
                                         (err, users) => {
 
                                             if (err) {
-                                                console.log(err);
+                                                console.log("ERREUR POSTGRESQL ADMIN:", err);
                                                 return res.send("Erreur chargement utilisateurs");
                                             }
 
@@ -546,7 +561,7 @@ app.get('/admin/membres', isAdmin, (req, res) => {
         (err, results) => {
 
             if (err) {
-                console.log(err);
+                console.log("ERREUR POSTGRESQL MEMBRES:", err);
                 return res.send("Erreur membres");
             }
 
@@ -586,7 +601,7 @@ app.get('/admin/posts', isAdmin, (req, res) => {
         (err, results) => {
 
             if (err) {
-                console.log(err);
+                console.log("ERREUR POSTGRESQL ADMIN:", err);
                 return res.send("Erreur posts");
             }
 
@@ -632,7 +647,7 @@ app.get('/admin/events', isAdmin, (req, res) => {
         (err, results) => {
 
             if (err) {
-                console.log(err);
+                console.log("ERREUR POSTGRESQL EVENTS:", err);
                 return res.send("Erreur events");
             }
 
@@ -651,7 +666,7 @@ app.get('/admin/gallery', isAdmin, (req, res) => {
         (err, results) => {
 
             if (err) {
-                console.log(err);
+                console.log("ERREUR POSTGRESQL GALERIE:", err);
                 return res.send("Erreur galerie");
             }
 
@@ -713,9 +728,20 @@ app.get('/delete-image/:id', isAdmin, (req, res) => {
 // ================= ADMIN MESSAGES =================
 app.get('/admin/messages', isAdmin, (req, res) => {
 
-    res.render('admin-messages', {
-        messages
-    });
+    db.query(
+        "SELECT * FROM messages ORDER BY id DESC",
+        (err, results) => {
+
+            if (err) {
+                console.log("ERREUR POSTGRESQL MESSAGES:", err);
+                return res.send("Erreur messages");
+            }
+
+            res.render('admin-messages', {
+                messages: results
+            });
+        }
+    ); 
 });
 
 // ================= SOCKET.IO =================
@@ -745,8 +771,9 @@ process.on("uncaughtException", (err) => {
 });
 
 // ================= START SERVER =================
-const PORT = process.env.PORT || 3000;
 
-server.listen(PORT, () => {
-    console.log(`Serveur lancé sur http://localhost:${PORT}`);
+const PORT = process.env.PORT || 10000;
+
+app.listen(PORT, () => {
+    console.log('Serveur lancé');
 });
