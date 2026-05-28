@@ -72,68 +72,34 @@ function isAdmin(req, res, next) {
 // ================= SOCKET.IO =================
 io.on("connection", (socket) => {
 
-    console.log("User connecté:", socket.id);
+    console.log("Utilisateur connecté");
 
-    // JOIN ROOM
-    socket.on("joinRoom", ({ roomId, user }) => {
+    socket.on("joinRoom", (roomId) => {
         socket.join(roomId);
-
-        socket.to(roomId).emit("userStatus", {
-            user,
-            status: "online"
-        });
     });
 
-    // TYPING
-    socket.on("typing", ({ roomId, user }) => {
-        socket.to(roomId).emit("typing", { user });
-    });
-
-    socket.on("stopTyping", ({ roomId, user }) => {
-        socket.to(roomId).emit("stopTyping", { user });
-    });
-
-    // MESSAGE
     socket.on("sendMessage", async (data) => {
 
         const { roomId, message, sender } = data;
 
-        // SAVE DB (IMPORTANT)
-        await db.query(
-            `INSERT INTO messages (conversation_id, sender, message, status, created_at)
-             VALUES ($1,$2,$3,$4,NOW())`,
-            [roomId, sender, message, "sent"]
-        );
+        try {
 
-        // SEND TO ROOM
-        io.to(roomId).emit("newMessage", {
-            sender,
-            message,
-            status: "sent",
-            time: new Date()
-        });
+            // 1. SAVE DB
+            await db.query(
+                `INSERT INTO messages (conversation_id, sender, message, created_at)
+                 VALUES ($1, $2, $3, NOW())`,
+                [roomId, sender, message]
+            );
 
-        // NOTIFICATION GLOBAL
-        socket.broadcast.emit("notification", {
-            sender,
-            roomId
-        });
-    });
+            // 2. SEND TO ROOM
+            io.to(roomId).emit("newMessage", {
+                sender,
+                message
+            });
 
-    // READ RECEIPT
-    socket.on("messageSeen", async ({ messageId }) => {
-
-        await db.query(
-            "UPDATE messages SET status='seen' WHERE id=$1",
-            [messageId]
-        );
-
-        io.emit("messageSeen", { messageId });
-    });
-
-    // DISCONNECT
-    socket.on("disconnect", () => {
-        console.log("User offline");
+        } catch (err) {
+            console.log("MESSAGE ERROR:", err);
+        }
     });
 
 });
