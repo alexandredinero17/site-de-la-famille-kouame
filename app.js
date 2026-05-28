@@ -34,9 +34,8 @@ const db = new Pool({
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
     port: 5432,
-    ssl: {
-        rejectUnauthorized: false
-    }
+    ssl: { rejectUnauthorized: false },
+    family: 4
 });
 
 app.get('/users', async (req, res) => {
@@ -47,13 +46,10 @@ app.get('/users', async (req, res) => {
 
         res.json(result.rows);
 
-    } catch(err) {
-
-        console.log(err);
-
-        res.status(500).send('Erreur serveur');
-
-    }
+    }catch (err) {
+    console.log("ERREUR REELLE :", err);
+    return res.status(500).send(err.message);
+}
 
 });
 
@@ -81,7 +77,13 @@ app.use(session({
     maxAge: 1000 * 60 * 60 * 24
 }
 }));
+process.on("unhandledRejection", (err) => {
+    console.log("PROMISE ERROR:", err);
+});
 
+process.on("uncaughtException", (err) => {
+    console.log("FATAL ERROR:", err);
+});
 
 // ================= GLOBAL VARIABLES =================
 
