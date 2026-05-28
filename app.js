@@ -72,26 +72,20 @@ function isAdmin(req, res, next) {
 // ================= SOCKET.IO =================
 io.on("connection", (socket) => {
 
-    console.log("Utilisateur connecté");
-
-    socket.on("joinRoom", (roomId) => {
-        socket.join(roomId);
-    });
-
     socket.on("sendMessage", async (data) => {
 
         const { roomId, message, sender } = data;
 
         try {
 
-            // 1. SAVE DB
+            // 1. SAVE EN BASE (TRÈS IMPORTANT)
             await db.query(
-                `INSERT INTO messages (conversation_id, sender, message, created_at)
-                 VALUES ($1, $2, $3, NOW())`,
+                `INSERT INTO messages (conversation_id, sender, message)
+                 VALUES ($1, $2, $3)`,
                 [roomId, sender, message]
             );
 
-            // 2. SEND TO ROOM
+            // 2. BROADCAST
             io.to(roomId).emit("newMessage", {
                 sender,
                 message
@@ -404,40 +398,20 @@ app.get('/chat', (req, res) => {
 });
 app.get('/chat/:id', async (req, res) => {
 
-    if (!req.session.user) {
-        return res.redirect('/login');
-    }
-
     const roomId = req.params.id;
 
-    if (!roomId) {
-        return res.status(400).send("Room invalide");
-    }
+    const result = await db.query(
+        `SELECT * FROM messages 
+         WHERE conversation_id = $1 
+         ORDER BY id ASC`,
+        [roomId]
+    );
 
-    try {
-
-        const result = await db.query(
-            `SELECT * FROM messages 
-             WHERE conversation_id = $1 
-             ORDER BY id ASC`,
-            [roomId]
-        );
-
-        res.render("chat", {
-            messages: result.rows || [],
-            roomId,
-            user: req.session.user
-        });
-
-    } catch (err) {
-
-    console.log("🔥🔥 CHAT ERROR FULL STACK:");
-    console.log(err);
-    console.log("ROOM ID:", req.params.id);
-    console.log("USER SESSION:", req.session.user);
-
-    return res.status(500).send(err.message);
-}
+    res.render("chat", {
+        messages: result.rows,
+        roomId,
+        user: req.session.user
+    });
 });
 // ================= LOGOUT =================
 app.get('/logout', (req, res) => {
