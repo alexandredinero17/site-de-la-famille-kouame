@@ -57,14 +57,9 @@ app.get('/users', async (req, res) => {
 
 });
 
-db.connect((err) => {
-    if (err) {
-        console.log('Erreur PostgreSQL :', err);
-    } else {
-        console.log('PostgreSQL connecté');
-    }
+db.on('connect', () => {
+    console.log('PostgreSQL pool prêt');
 });
-name: 'famille.sid',
 // ================= MIDDLEWARE =================
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -666,7 +661,7 @@ app.get('/admin/gallery', isAdmin, (req, res) => {
         (err, results) => {
 
             if (err) {
-                console.log("ERREUR POSTGRESQL GALERIE:", err);
+                console.log(err);
                 return res.send("Erreur galerie");
             }
 
@@ -728,20 +723,9 @@ app.get('/delete-image/:id', isAdmin, (req, res) => {
 // ================= ADMIN MESSAGES =================
 app.get('/admin/messages', isAdmin, (req, res) => {
 
-    db.query(
-        "SELECT * FROM messages ORDER BY id DESC",
-        (err, results) => {
-
-            if (err) {
-                console.log("ERREUR POSTGRESQL MESSAGES:", err);
-                return res.send("Erreur messages");
-            }
-
-            res.render('admin-messages', {
-                messages: results
-            });
-        }
-    ); 
+    res.render('admin-messages', {
+        messages
+    });
 });
 
 // ================= SOCKET.IO =================
@@ -773,7 +757,6 @@ process.on("uncaughtException", (err) => {
 // ================= START SERVER =================
 
 const PORT = process.env.PORT || 10000;
-
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log('Serveur lancé');
 });
