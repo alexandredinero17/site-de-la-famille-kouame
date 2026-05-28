@@ -2,113 +2,251 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Nos Conversations</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Messages</title>
 
 <style>
-body {
-    margin: 0;
-    font-family: Arial;
-    background: #0b141a;
-    color: white;
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    font-family:Arial, sans-serif;
+    background:#0b141a;
+    color:white;
+    height:100vh;
+    overflow:hidden;
+}
+
+/* CONTAINER */
+.container{
+    display:flex;
+    height:100vh;
+}
+
+/* SIDEBAR */
+.sidebar{
+    width:380px;
+    background:#111b21;
+    border-right:1px solid #222d34;
+    display:flex;
+    flex-direction:column;
 }
 
 /* HEADER */
-.header {
-    padding: 15px;
-    background: #111b21;
-    font-size: 18px;
-    font-weight: bold;
+.sidebar-header{
+    padding:15px;
+    background:#202c33;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
 }
 
-/* LISTE */
-.list {
-    display: flex;
-    flex-direction: column;
+.sidebar-header h2{
+    font-size:20px;
 }
 
-.chat {
-    display: flex;
-    align-items: center;
-    padding: 12px;
-    border-bottom: 1px solid #1f2c33;
-    cursor: pointer;
-    transition: 0.2s;
+/* SEARCH */
+.search-box{
+    padding:10px;
+    background:#111b21;
 }
 
-.chat:hover {
-    background: #1f2c33;
+.search-box input{
+    width:100%;
+    padding:12px;
+    border:none;
+    border-radius:10px;
+    background:#202c33;
+    color:white;
+    outline:none;
+}
+
+/* CHAT LIST */
+.chat-list{
+    flex:1;
+    overflow-y:auto;
+}
+
+/* CHAT ITEM */
+.chat-item{
+    display:flex;
+    align-items:center;
+    padding:14px;
+    cursor:pointer;
+    transition:0.2s;
+    border-bottom:1px solid #1f2c33;
+}
+
+.chat-item:hover{
+    background:#202c33;
 }
 
 /* AVATAR */
-.avatar {
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    background: #00a884;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    margin-right: 10px;
+.avatar{
+    width:50px;
+    height:50px;
+    border-radius:50%;
+    background:#00a884;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:bold;
+    font-size:20px;
+    margin-right:12px;
+    flex-shrink:0;
 }
 
 /* INFOS */
-.info {
-    flex: 1;
+.chat-info{
+    flex:1;
 }
 
-.name {
-    font-weight: bold;
+.chat-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
 }
 
-.last {
-    font-size: 13px;
-    color: #8696a0;
+.chat-name{
+    font-weight:bold;
+    font-size:16px;
 }
 
-/* TIME */
-.time {
-    font-size: 12px;
-    color: #8696a0;
+.chat-time{
+    font-size:12px;
+    color:#8696a0;
 }
-a {
-    text-decoration: none;
-    color: white;
+
+.last-message{
+    margin-top:4px;
+    color:#8696a0;
+    font-size:14px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
 }
+
+/* BADGE */
+.badge{
+    background:#00a884;
+    color:white;
+    font-size:11px;
+    border-radius:50%;
+    width:20px;
+    height:20px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin-left:10px;
+}
+
+/* EMPTY */
+.empty{
+    flex:1;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:#222e35;
+    color:#8696a0;
+    font-size:22px;
+}
+
+/* LINKS */
+a{
+    text-decoration:none;
+    color:white;
+}
+
+/* MOBILE */
+@media(max-width:800px){
+
+    .sidebar{
+        width:100%;
+    }
+
+    .empty{
+        display:none;
+    }
+}
+
 </style>
-
 </head>
 
 <body>
 
-<div class="header">
-💬 Conversations
-</div>
+<div class="container">
 
-<div class="list">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
 
-<% users.forEach(user => { %>
+        <div class="sidebar-header">
+            <h2>💬 Discussions</h2>
+        </div>
 
-<a href="/chat/<%= user.nom %>">
+        <!-- SEARCH -->
+        <div class="search-box">
+            <input type="text" placeholder="Rechercher une discussion...">
+        </div>
 
-<div class="chat">
+        <!-- CHAT LIST -->
+        <div class="chat-list">
 
-    <div class="avatar">
-        <%= user.nom.charAt(0).toUpperCase() %>
+            <% users.forEach(user => { %>
+
+                <a href="/chat/<%= user.nom %>">
+
+                    <div class="chat-item">
+
+                        <!-- AVATAR -->
+                        <div class="avatar">
+                            <%= user.nom.charAt(0).toUpperCase() %>
+                        </div>
+
+                        <!-- INFO -->
+                        <div class="chat-info">
+
+                            <div class="chat-top">
+
+                                <div class="chat-name">
+                                    <%= user.nom %>
+                                </div>
+
+                                <div class="chat-time">
+                                    now
+                                </div>
+
+                            </div>
+
+                            <div class="last-message">
+                                Cliquez pour discuter...
+                            </div>
+
+                        </div>
+
+                        <!-- BADGE -->
+                        <div class="badge">
+                            1
+                        </div>
+
+                    </div>
+
+                </a>
+
+            <% }) %>
+
+        </div>
+
     </div>
 
-    <div class="info">
-        <div class="name"><%= user.nom %></div>
-        <div class="last">Clique pour discuter</div>
+    <!-- EMPTY SIDE -->
+    <div class="empty">
+        Sélectionnez une conversation
     </div>
-
-    <div class="time">now</div>
-
-</div>
-
-</a>
-
-<% }) %>
 
 </div>
 
