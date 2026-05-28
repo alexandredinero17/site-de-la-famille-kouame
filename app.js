@@ -257,6 +257,42 @@ app.get('/galerie', (req, res) => {
         res.render('galerie', { images: result.rows, user: req.session.user });
     });
 });
+app.post('/upload-image', upload.single('image'), async (req, res) => {
+
+    if (!req.session.user) {
+        return res.redirect('/login');
+    }
+
+    try {
+
+        if (!req.file) {
+            return res.send("Aucune image envoyée");
+        }
+
+        const user = req.session.user.nom;
+
+        const image = "/uploads/" + req.file.filename;
+
+        await db.query(
+            `INSERT INTO galerie (user, image, date, description)
+             VALUES ($1, $2, $3, $4)`,
+            [
+                req.session.user.nom,
+                image,
+                new Date(),
+                req.body.description || ""
+            ]
+        );
+
+        res.redirect('/galerie');
+
+    } catch (err) {
+
+        console.log("UPLOAD ERROR:", err);
+
+        res.status(500).send("Erreur upload image");
+    }
+});
 
 // ================= MEMBRES =================
 app.get('/membres', (req, res) => {
@@ -269,6 +305,36 @@ app.get('/membres', (req, res) => {
 });
 
 // ================= EVENTS =================
+app.post("/add-event", async (req, res) => {
+
+    if (!req.session.user) {
+        return res.redirect("/login");
+    }
+
+    try {
+
+        const { title, description } = req.body;
+
+        await db.query(
+            `INSERT INTO events (user, title, description, date)
+             VALUES ($1, $2, $3, $4)`,
+            [
+                req.session.user.nom,
+                title,
+                description,
+                new Date()
+            ]
+        );
+
+        res.redirect("/events");
+
+    } catch (err) {
+
+        console.log("ADD EVENT ERROR:", err);
+
+        res.status(500).send("Erreur ajout événement");
+    }
+});
 app.get('/events', (req, res) => {
     db.query("SELECT * FROM events ORDER BY id DESC", (err, result) => {
         if (err) return res.status(500).send(err.message);
@@ -418,23 +484,25 @@ app.get('/delete-image/:id', isAdmin, (req, res) => {
         }
     );
 });
-app.get('/admin/membres', isAdmin, (req, res) => {
+app.get('/admin/membres', isAdmin, async (req, res) => {
 
-    db.query(
-        "SELECT * FROM users ORDER BY id DESC",
-        (err, results) => {
+    try {
 
-            if (err) {
-                console.log(err);
-                return res.send("Erreur membres");
-            }
+        const result = await db.query(
+            "SELECT * FROM users ORDER BY id DESC"
+        );
 
-            res.render('admin-users', {
-                users: results,
-                user: req.session.user
-            });
-        }
-    );
+        res.render('admin-users', {
+            users: result.rows,
+            user: req.session.user
+        });
+
+    } catch (err) {
+
+        console.log("ADMIN USERS ERROR:", err);
+
+        res.status(500).send("Erreur chargement utilisateurs");
+    }
 });
 app.get('/admin/events', isAdmin, (req, res) => {
 
@@ -445,7 +513,8 @@ app.get('/admin/events', isAdmin, (req, res) => {
             if (err) return res.send("Erreur events");
 
             res.render('admin-events', {
-                events: results
+                events: results.rows,
+                user: req.session.user
             });
         }
     );
@@ -459,7 +528,8 @@ app.get('/admin/gallery', isAdmin, (req, res) => {
             if (err) return res.send("Erreur galerie");
 
             res.render('admin-gallery', {
-                images: results
+                images: results.rows,
+                user: req.session.user
             });
         }
     );

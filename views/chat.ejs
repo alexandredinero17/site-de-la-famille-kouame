@@ -65,7 +65,7 @@
 <body>
 
 <h3 style="padding:10px;">
-    Chat avec <%= receiver %>
+    Chat avec la famille 
 </h3>
 <div id="status"></div>
 <div id="chat-box"></div>
@@ -80,7 +80,7 @@
 const socket = io();
 
 const sender = "<%= user.nom %>";
-const receiver = "<%= receiver %>";
+const receiver = "family";
 const conversation_id = "<%= conversation_id %>";
 
 socket.emit("join", sender);
