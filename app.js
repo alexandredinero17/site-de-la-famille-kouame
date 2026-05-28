@@ -488,6 +488,24 @@ app.post('/delete-user/:id', isAdmin, (req, res) => {
         }
     );
 });
+app.get('/delete-user/:id', isAdmin, async (req, res) => {
+
+    try {
+
+        await db.query(
+            "DELETE FROM users WHERE id = $1",
+            [req.params.id]
+        );
+
+        res.redirect('/admin/membres');
+
+    } catch (err) {
+
+        console.log("DELETE USER ERROR:", err);
+
+        res.status(500).send("Erreur suppression utilisateur");
+    }
+});
 app.get('/delete-image/:id', isAdmin, (req, res) => {
 
     const id = req.params.id;

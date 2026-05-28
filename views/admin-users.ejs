@@ -17,10 +17,13 @@
             <h3><%= user.nom %></h3>
 
             <p><%= user.email %></p>
-<a href="/delete-user/<%= user.id %>"
-   onclick="return confirm('Supprimer cet utilisateur ?')">
-    Supprimer
-</a>
+<form action="/delete-user/<%= user.id %>" method="POST" onclick="return confirm('Supprimer cet utilisateur ?')"></form>>
+
+    <button type="submit">
+        Supprimer
+    </button>
+
+
 
         </div>
 
