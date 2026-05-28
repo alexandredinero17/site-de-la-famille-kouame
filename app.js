@@ -134,19 +134,50 @@ io.on("connection", (socket) => {
     });
 });
 const storage = multer.diskStorage({
-    destination: "public/uploads",
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + "-" + file.originalname);
+
+    destination: function (req, file, cb) {
+
+        cb(null, path.join(__dirname, 'public/uploads'));
+
+    },
+
+    filename: function (req, file, cb) {
+
+        const unique =
+            Date.now() + "-" + Math.round(Math.random() * 1E9);
+
+        cb(
+            null,
+            unique + path.extname(file.originalname)
+        );
     }
 });
 
-const upload = multer({ dest: "public/uploads" });
+const upload = multer({
 
-app.post("/upload-media", upload.single("file"), (req, res) => {
+    storage,
 
-    res.json({
-        url: "/uploads/" + req.file.filename
-    });
+    limits: {
+        fileSize: 5 * 1024 * 1024
+    },
+
+    fileFilter: (req, file, cb) => {
+
+        const allowed = [
+            "image/jpeg",
+            "image/png",
+            "image/jpg"
+        ];
+
+        if (allowed.includes(file.mimetype)) {
+
+            cb(null, true);
+
+        } else {
+
+            cb(new Error("Format non autorisé"));
+        }
+    }
 });
 app.get('/conversations', async (req, res) => {
 
@@ -195,6 +226,7 @@ app.post('/post', async (req, res) => {
         console.log("POST ERROR:", err);
 
         res.status(500).send("Erreur publication");
+        console.log(err);
     }
 });
 
@@ -316,8 +348,11 @@ app.post("/add-event", async (req, res) => {
         const { title, description } = req.body;
 
         await db.query(
-            `INSERT INTO events (user, title, description, date)
-             VALUES ($1, $2, $3, $4)`,
+            `
+            INSERT INTO events
+            (user_name, title, description, date)
+            VALUES ($1, $2, $3, $4)
+            `,
             [
                 req.session.user.nom,
                 title,
@@ -330,9 +365,9 @@ app.post("/add-event", async (req, res) => {
 
     } catch (err) {
 
-        console.log("ADD EVENT ERROR:", err);
+        console.log("EVENT ERROR :", err);
 
-        res.status(500).send("Erreur ajout événement");
+        res.status(500).send("ERREUR AJOUT EVENEMENT");
     }
 });
 app.get('/events', (req, res) => {
