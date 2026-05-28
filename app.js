@@ -79,29 +79,28 @@ io.on("connection", (socket) => {
     socket.on("sendMessage", async (data) => {
 
         const { roomId, message, sender } = data;
-
-        if (!message || !roomId) return;
+const roomId = String(data.roomId);
+        if (!roomId || !message) return;
 
         try {
 
-            // 1. SAVE EN BASE (OBLIGATOIRE)
+            // 🔥 1. SAUVEGARDE OBLIGATOIRE
             await db.query(
                 `INSERT INTO messages (conversation_id, sender, message)
                  VALUES ($1, $2, $3)`,
                 [roomId, sender, message]
             );
 
-            // 2. ENVOI LIVE
+            // 🔥 2. BROADCAST
             io.to(roomId).emit("newMessage", {
                 sender,
                 message
             });
 
         } catch (err) {
-            console.log("MESSAGE ERROR:", err);
+            console.log("SAVE MESSAGE ERROR:", err);
         }
     });
-
 });
 const storage = multer.diskStorage({
 
@@ -404,13 +403,11 @@ app.get('/chat', (req, res) => {
 });
 app.get('/chat/:id', async (req, res) => {
 
-    if (!req.session.user) {
-        return res.redirect('/login');
-    }
+    if (!req.session.user) return res.redirect('/login');
 
     try {
 
-        const roomId = req.params.id;
+      const roomId = String(req.params.id);
 
         const result = await db.query(
             `SELECT * FROM messages 
@@ -427,7 +424,7 @@ app.get('/chat/:id', async (req, res) => {
 
     } catch (err) {
         console.log("CHAT ERROR:", err);
-        return res.status(500).send("Erreur chat serveur");
+        res.status(500).send("Erreur chat serveur");
     }
 });
 // ================= LOGOUT =================
