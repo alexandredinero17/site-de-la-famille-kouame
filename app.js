@@ -299,17 +299,32 @@ app.get('/logout', (req, res) => {
 
 // ================= ADMIN =================
 app.get('/admin', isAdmin, async (req, res) => {
-    const users = await db.query("SELECT COUNT(*) FROM users");
-    const posts = await db.query("SELECT COUNT(*) FROM posts");
-    const events = await db.query("SELECT COUNT(*) FROM events");
 
-    res.render('admin', {
-        stats: {
-            users: users.rows[0].count,
-            posts: posts.rows[0].count,
-            events: events.rows[0].count
-        }
-    });
+    try {
+
+        const usersResult = await db.query("SELECT COUNT(*) FROM users");
+        const postsResult = await db.query("SELECT COUNT(*) FROM posts");
+        const eventsResult = await db.query("SELECT COUNT(*) FROM events");
+        const galleryResult = await db.query("SELECT COUNT(*) FROM galerie");
+        const usersList = await db.query("SELECT * FROM users ORDER BY id DESC");
+
+        const stats = {
+            users: usersResult.rows[0].count,
+            posts: postsResult.rows[0].count,
+            events: eventsResult.rows[0].count,
+            images: galleryResult.rows[0].count
+        };
+
+        res.render("admin", {
+            stats,
+            users: usersList.rows,
+            user: req.session.user
+        });
+
+    } catch (err) {
+        console.log("ADMIN ERROR:", err);
+        res.status(500).send("Erreur serveur admin");
+    }
 });
 app.get('/delete-post/:id', isAdmin, (req, res) => {
 
