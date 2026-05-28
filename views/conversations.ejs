@@ -1,50 +1,116 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <title>Conversations</title>
-    <style>
-        body {
-            font-family: Arial;
-            background: #111;
-            color: white;
-        }
+<meta charset="UTF-8">
+<title>Conversations</title>
 
-        .chat {
-            padding: 15px;
-            border-bottom: 1px solid #333;
-            cursor: pointer;
-        }
+<style>
+body {
+    margin: 0;
+    font-family: Arial;
+    background: #0b141a;
+    color: white;
+}
 
-        .chat:hover {
-            background: #222;
-        }
+/* HEADER */
+.header {
+    padding: 15px;
+    background: #111b21;
+    font-size: 18px;
+    font-weight: bold;
+}
 
-        .name {
-            font-weight: bold;
-        }
+/* LISTE */
+.list {
+    display: flex;
+    flex-direction: column;
+}
 
-        a {
-            color: white;
-            text-decoration: none;
-        }
-    </style>
+.chat {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border-bottom: 1px solid #1f2c33;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.chat:hover {
+    background: #1f2c33;
+}
+
+/* AVATAR */
+.avatar {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    background: #00a884;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+/* INFOS */
+.info {
+    flex: 1;
+}
+
+.name {
+    font-weight: bold;
+}
+
+.last {
+    font-size: 13px;
+    color: #8696a0;
+}
+
+/* TIME */
+.time {
+    font-size: 12px;
+    color: #8696a0;
+}
+a {
+    text-decoration: none;
+    color: white;
+}
+</style>
+
 </head>
+
 <body>
 
-<h2>💬 Mes conversations</h2>
+<div class="header">
+💬 Conversations
+</div>
 
-<!-- LISTE DES USERS / CONVERSATIONS -->
+<div class="list">
+
 <% users.forEach(user => { %>
 
-    <a href="/chat/<%= user.nom %>">
-        <div class="chat">
-            <div class="name"><%= user.nom %></div>
-            <div>Cliquer pour discuter</div>
-        </div>
-    </a>
+<a href="/chat/<%= user.nom %>">
+
+<div class="chat">
+
+    <div class="avatar">
+        <%= user.nom.charAt(0).toUpperCase() %>
+    </div>
+
+    <div class="info">
+        <div class="name"><%= user.nom %></div>
+        <div class="last">Clique pour discuter</div>
+    </div>
+
+    <div class="time">now</div>
+
+</div>
+
+</a>
 
 <% }) %>
+
+</div>
 
 </body>
 </html>

@@ -446,14 +446,66 @@ app.get('/admin/chats', isAdmin, async (req, res) => {
         user: req.session.user
     });
 });
-app.post('/admin/delete-message/:id', isAdmin, async (req, res) => {
+app.get('/admin/chat/:id', isAdmin, async (req, res) => {
 
-    await db.query(
-        "DELETE FROM messages WHERE id=$1",
-        [req.params.id]
-    );
+    try {
 
-    res.redirect('back');
+        const result = await db.query(
+            "SELECT * FROM messages WHERE conversation_id=$1 ORDER BY id ASC",
+            [req.params.id]
+        );
+
+        res.render('admin-chat-view', {
+            messages: result.rows,
+            convId: req.params.id,
+            user: req.session.user
+        });
+
+    } catch (err) {
+        console.log(err);
+        res.status(500).send("Erreur chat admin");
+    }
+});
+app.post('/admin/delete-conversation/:id', isAdmin, async (req, res) => {
+
+    try {
+
+        const id = req.params.id;
+
+        await db.query(
+            "DELETE FROM messages WHERE conversation_id=$1",
+            [id]
+        );
+
+        await db.query(
+            "DELETE FROM conversations WHERE id=$1",
+            [id]
+        );
+
+        res.redirect('/admin/chats');
+
+    } catch (err) {
+        console.log(err);
+        res.status(500).send("Erreur suppression conversation");
+    }
+});
+app.get('/admin/posts', isAdmin, async (req, res) => {
+
+    try {
+
+        const result = await db.query(
+            "SELECT * FROM posts ORDER BY id DESC"
+        );
+
+        res.render('admin-posts', {
+            posts: result.rows,
+            user: req.session.user
+        });
+
+    } catch (err) {
+        console.log(err);
+        res.status(500).send("Erreur posts admin");
+    }
 });
 
 // ================= START SERVER =================
