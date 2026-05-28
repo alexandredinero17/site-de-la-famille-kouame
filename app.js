@@ -186,15 +186,32 @@ const upload = multer({
 });
 app.get('/conversations', async (req, res) => {
 
-    const user = req.session.user.nom;
+    if (!req.session.user) {
+        return res.redirect('/login');
+    }
 
-    const result = await db.query(
-        `SELECT * FROM conversations 
-         WHERE user1=$1 OR user2=$1`,
-        [user]
-    );
+    try {
 
-    res.json(result.rows);
+        const user = req.session.user.nom;
+
+        const result = await db.query(
+            `SELECT * FROM conversations 
+             WHERE user1=$1 OR user2=$1
+             ORDER BY id DESC`,
+            [user]
+        );
+
+        res.render('conversations', {
+            conversations: result.rows,
+            user: req.session.user
+        });
+
+    } catch (err) {
+
+        console.log("CONVERSATIONS ERROR:", err);
+
+        res.status(500).send("Erreur conversations");
+    }
 });
 
 // ================= HOME =================

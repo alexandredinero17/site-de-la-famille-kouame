@@ -196,50 +196,33 @@ a{
         <!-- CHAT LIST -->
         <div class="chat-list">
 
-            <% users.forEach(user => { %>
+          <% conversations.forEach(conv => { %>
 
-                <a href="/chat/<%= user.nom %>">
+    <a href="/chat/<%= conv.id %>">
 
-                    <div class="chat-item">
+        <div class="chat-item">
 
-                        <!-- AVATAR -->
-                        <div class="avatar">
-                            <%= user.nom.charAt(0).toUpperCase() %>
-                        </div>
+            <div class="avatar">
+                <%= conv.user1.charAt(0).toUpperCase() %>
+            </div>
 
-                        <!-- INFO -->
-                        <div class="chat-info">
+            <div class="chat-info">
 
-                            <div class="chat-top">
+                <div class="chat-name">
+                    <%= conv.user1 === user.nom ? conv.user2 : conv.user1 %>
+                </div>
 
-                                <div class="chat-name">
-                                    <%= user.nom %>
-                                </div>
+                <div class="last-message">
+                    Ouvrir la conversation...
+                </div>
 
-                                <div class="chat-time">
-                                    now
-                                </div>
-
-                            </div>
-
-                            <div class="last-message">
-                                Cliquez pour discuter...
-                            </div>
-
-                        </div>
-
-                        <!-- BADGE -->
-                        <div class="badge">
-                            1
-                        </div>
-
-                    </div>
-
-                </a>
-
-            <% }) %>
+            </div>
 
         </div>
+
+    </a>
+
+<% }) %>
 
     </div>
 
