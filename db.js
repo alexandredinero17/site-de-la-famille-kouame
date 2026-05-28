@@ -12,3 +12,9 @@ const pool = new Pool({
 });
 
 module.exports = pool;
+import postgres from 'postgres'
+
+const connectionString = process.env.DATABASE_URL
+const sql = postgres(connectionString)
+
+export default sql
