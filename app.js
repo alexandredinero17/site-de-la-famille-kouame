@@ -166,8 +166,8 @@ app.get('/conversations', async (req, res) => {
 
         const result = await db.query(
             `SELECT * FROM conversations 
-             WHERE user1=$1 OR user2=$1
-             ORDER BY id DESC`,
+             WHERE user1 = $1 OR user2 = $1 
+             ORDER BY created_at DESC`,
             [user]
         );
 
@@ -177,9 +177,7 @@ app.get('/conversations', async (req, res) => {
         });
 
     } catch (err) {
-
         console.log("CONVERSATIONS ERROR:", err);
-
         res.status(500).send("Erreur conversations");
     }
 });
