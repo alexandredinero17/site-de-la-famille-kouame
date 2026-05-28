@@ -195,25 +195,24 @@ a{
 
         <!-- CHAT LIST -->
         <div class="chat-list">
+<h2>Conversations</h2>
 
-     <% conversations.forEach(conv => { %>
+<% conversations.forEach(c => { %>
 
-    <div class="conversation">
-        <a href="/chat/<%= conv.id %>">
-            Conversation #<%= conv.id %>
+    <div style="padding:10px;background:#222;margin:5px;">
+        <a href="/chat/<%= c.id %>">
+            Chat avec <%= c.user1 === user ? c.user2 : c.user1 %>
         </a>
     </div>
 
 <% }) %>
+        </div>
 
     </div>
 
-    <!-- EMPTY SIDE -->
     <div class="empty">
-        Sélectionnez une conversation
+        Sélectionnez une conversation pour voir les messages
     </div>
-
-</div>
 
 </body>
 </html>

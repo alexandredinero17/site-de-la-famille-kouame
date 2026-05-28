@@ -78,28 +78,26 @@ io.on("connection", (socket) => {
 
     socket.on("sendMessage", async (data) => {
 
-        const { roomId, message, sender } = data;
-        if (!roomId || !message) return;
+        const { roomId, sender, message } = data;
 
-        try {
+        if (!message) return;
 
-            // 🔥 1. SAUVEGARDE OBLIGATOIRE
-            await db.query(
-                `INSERT INTO messages (conversation_id, sender, message)
-                 VALUES ($1, $2, $3)`,
-                [roomId, sender, message]
-            );
+        // 1. SAVE DB
+        await db.query(
+            `INSERT INTO messages (conversation_id, sender, message)
+             VALUES ($1, $2, $3)`,
+            [roomId, sender, message]
+        );
 
-            // 🔥 2. BROADCAST
-            io.to(roomId).emit("newMessage", {
-                sender,
-                message
-            });
+        // 2. BROADCAST
+        io.to(roomId).emit("newMessage", {
+            sender,
+            message,
+            roomId
+        });
 
-        } catch (err) {
-            console.log("SAVE MESSAGE ERROR:", err);
-        }
     });
+
 });
 const storage = multer.diskStorage({
 
@@ -385,20 +383,24 @@ app.get('/events', (req, res) => {
 
 
 // ================= CHAT =================
-app.get('/chat', (req, res) => {
+app.get('/chat/:id', async (req, res) => {
 
-    if (!req.session.user) {
-        return res.redirect('/login');
-    }
+    if (!req.session.user) return res.redirect('/login');
+
+    const conversationId = parseInt(req.params.id);
+
+    const messages = await db.query(
+        `SELECT * FROM messages 
+         WHERE conversation_id=$1 
+         ORDER BY id ASC`,
+        [conversationId]
+    );
 
     res.render('chat', {
         user: req.session.user,
-        messages: [],
-        roomId: null
+        roomId: conversationId,
+        messages: messages.rows
     });
-    setTimeout(() => {
-    window.scrollTo(0, document.body.scrollHeight);
-}, 100);
 });
 app.get('/chat/:id', async (req, res) => {
 

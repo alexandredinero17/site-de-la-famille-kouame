@@ -102,23 +102,22 @@ button {
 </h3>
 
 <div id="status"></div>
-
 <div id="chat-box"></div>
 
 <div id="input">
     <input id="msg" placeholder="Message..." />
-    <button onclick="sendMessage()">Envoyer</button>
+    <button onclick="send()">Envoyer</button>
 </div>
+
 <script src="/socket.io/socket.io.js"></script>
 
 <script>
+
 const socket = io();
 
-// join room
 socket.emit("joinRoom", "<%= roomId %>");
 
-// send message
-function sendMessage() {
+function send() {
 
     const msg = document.getElementById("msg").value;
 
@@ -126,34 +125,26 @@ function sendMessage() {
 
     socket.emit("sendMessage", {
         roomId: "<%= roomId %>",
-        message: msg,
-        sender: "<%= user.nom %>"
+        sender: "<%= user.nom %>",
+        message: msg
     });
 
     document.getElementById("msg").value = "";
 }
 
-// receive message
 socket.on("newMessage", (data) => {
 
     const chat = document.getElementById("chat-box");
 
     const div = document.createElement("div");
-    div.classList.add("msg");
 
-    if (data.sender === "<%= user.nom %>") {
-        div.classList.add("me");
-    } else {
-        div.classList.add("other");
-    }
-
-    div.innerHTML = `<b>${data.sender}</b><br>${data.message}`;
+    div.innerHTML = `<b>${data.sender}</b>: ${data.message}`;
 
     chat.appendChild(div);
 
-    chat.scrollTop = chat.scrollHeight;
 });
 
+</script>
 </script>
 </body>
 </html>
