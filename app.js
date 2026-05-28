@@ -431,29 +431,30 @@ app.get('/chat/:id', async (req, res) => {
 
     try {
 
-        const roomId = req.params.id;
+ const roomId = req.params.id || 0;
 
-        // ⚡ LIMIT IMPORTANT (sinon lent)
         const result = await db.query(
             `SELECT * FROM messages 
-             WHERE conversation_id=$1 
-             ORDER BY id DESC 
+             WHERE conversation_id = $1 
+             ORDER BY id ASC 
              LIMIT 50`,
             [roomId]
         );
 
         res.render("chat", {
-            messages: result.rows.reverse(), // remettre ordre normal
+            messages: result.rows || [],
             roomId,
             user: req.session.user
         });
 
     } catch (err) {
-        console.log("CHAT ERROR:", err);
-        res.status(500).send("Erreur chat");
+        return res.status(500).send("Erreur chat serveur");
+            console.log("FULL CHAT ERROR:", err);
+    console.log("ROOM ID:", req.params.id);
+    console.log("USER:", req.session.user);
+    return res.status(500).send(err.message);
     }
 });
-
 // ================= LOGOUT =================
 app.get('/logout', (req, res) => {
     req.session.destroy(() => res.redirect('/'));
