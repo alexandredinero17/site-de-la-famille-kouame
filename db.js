@@ -1,20 +1,17 @@
 const { Pool } = require('pg');
 
-const pool = new Pool({
-  host: 'db.xxxxxxxxx.supabase.co',
-  user: 'postgres',
-  password: 'TON_MOT_DE_PASSE',
-  database: 'postgres',
-  port: 5432,
-  ssl: {
-    rejectUnauthorized: false
-  }
+const db = new Pool({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    port: 5432,
+    ssl: { rejectUnauthorized: false },
+    family: 4
 });
 
-module.exports = pool;
-import postgres from 'postgres'
+db.on('connect', () => {
+    console.log("PostgreSQL connecté");
+});
 
-const connectionString = process.env.DATABASE_URL
-const sql = postgres(connectionString)
-
-export default sql
+module.exports = db;
