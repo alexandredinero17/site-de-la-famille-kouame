@@ -506,6 +506,24 @@ app.get('/delete-user/:id', isAdmin, async (req, res) => {
         res.status(500).send("Erreur suppression utilisateur");
     }
 });
+app.post('/delete-event/:id', isAdmin, async (req, res) => {
+
+    try {
+
+        await db.query(
+            "DELETE FROM events WHERE id = $1",
+            [req.params.id]
+        );
+
+        res.redirect('/admin/events');
+
+    } catch (err) {
+
+        console.log("DELETE EVENT ERROR :", err);
+
+        res.status(500).send("Erreur suppression événement");
+    }
+});
 app.get('/delete-image/:id', isAdmin, (req, res) => {
 
     const id = req.params.id;
