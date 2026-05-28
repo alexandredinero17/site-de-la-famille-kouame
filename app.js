@@ -72,30 +72,48 @@ function isAdmin(req, res, next) {
 // ================= SOCKET.IO =================
 io.on("connection", (socket) => {
 
-    socket.on("joinRoom", (roomId) => {
-        socket.join(roomId);
+    console.log("User connecté");
+
+    // rejoindre room chat
+    socket.on("join", (conversationId) => {
+        socket.join(conversationId);
     });
 
-    socket.on("sendMessage", async (data) => {
+    // message
+    socket.on("message", async (data) => {
 
-        const { roomId, sender, message } = data;
+        const { conversationId, sender, message } = data;
 
-        if (!message) return;
-
-        // 1. SAVE DB
+        // save DB
         await db.query(
-            `INSERT INTO messages (conversation_id, sender, message)
-             VALUES ($1, $2, $3)`,
-            [roomId, sender, message]
+            `INSERT INTO messages (conversation_id, sender, message, status, created_at)
+             VALUES ($1,$2,$3,$4,NOW())`,
+            [conversationId, sender, message, "sent"]
         );
 
-        // 2. BROADCAST
-        io.to(roomId).emit("newMessage", {
+        // broadcast
+        io.to(conversationId).emit("message", {
             sender,
             message,
-            roomId
+            status: "sent",
+            time: new Date()
         });
 
+        // notification globale
+        socket.broadcast.emit("notification", {
+            sender,
+            conversationId
+        });
+    });
+
+    // online status
+    socket.on("online", async (userId) => {
+        await db.query("UPDATE users SET online=true WHERE id=$1", [userId]);
+        io.emit("user_online", userId);
+    });
+
+    socket.on("disconnect", () => {
+        console.log("User déconnecté");
     });
 
 });
