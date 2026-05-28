@@ -466,9 +466,14 @@ app.get('/chat/:id', async (req, res) => {
         });
 
     } catch (err) {
-        console.log("CHAT ERROR:", err.message);
-        return res.status(500).send("Erreur chat serveur");
-    }
+
+    console.log("🔥🔥 CHAT ERROR FULL STACK:");
+    console.log(err);
+    console.log("ROOM ID:", req.params.id);
+    console.log("USER SESSION:", req.session.user);
+
+    return res.status(500).send(err.message);
+}
 });
 // ================= LOGOUT =================
 app.get('/logout', (req, res) => {
