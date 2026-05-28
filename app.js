@@ -405,25 +405,6 @@ app.get('/chat/:id', async (req, res) => {
 
     if (!req.session.user) return res.redirect('/login');
 
-    const conversationId = parseInt(req.params.id);
-
-    const messages = await db.query(
-        `SELECT * FROM messages 
-         WHERE conversation_id=$1 
-         ORDER BY id ASC`,
-        [conversationId]
-    );
-
-    res.render('chat', {
-        user: req.session.user,
-        roomId: conversationId,
-        messages: messages.rows
-    });
-});
-app.get('/chat/:id', async (req, res) => {
-
-    if (!req.session.user) return res.redirect('/login');
-
     try {
 
       const roomId = String(req.params.id);
