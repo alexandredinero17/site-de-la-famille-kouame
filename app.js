@@ -71,67 +71,72 @@ function isAdmin(req, res, next) {
 }
 
 // ================= SOCKET.IO =================
-let onlineUsers = {};
-
 io.on("connection", (socket) => {
 
-    // USER ONLINE
-    socket.on("join", (username) => {
-        onlineUsers[username] = socket.id;
-        io.emit("online-users", Object.keys(onlineUsers));
+    console.log("User connecté:", socket.id);
+
+    // JOIN ROOM
+    socket.on("joinRoom", ({ roomId, user }) => {
+        socket.join(roomId);
+
+        socket.to(roomId).emit("userStatus", {
+            user,
+            status: "online"
+        });
     });
 
-    // SEND MESSAGE LEVEL UP
-    socket.on("send-message", async (data) => {
+    // TYPING
+    socket.on("typing", ({ roomId, user }) => {
+        socket.to(roomId).emit("typing", { user });
+    });
 
-        const {
-            conversation_id,
-            sender,
-            receiver,
-            type,
-            content,
-            media_url
-        } = data;
+    socket.on("stopTyping", ({ roomId, user }) => {
+        socket.to(roomId).emit("stopTyping", { user });
+    });
 
-        const result = await db.query(
-            `INSERT INTO messages 
-            (conversation_id, sender, type, content, media_url)
-            VALUES ($1,$2,$3,$4,$5)
-            RETURNING *`,
-            [conversation_id, sender, type, content, media_url]
+    // MESSAGE
+    socket.on("sendMessage", async (data) => {
+
+        const { roomId, message, sender } = data;
+
+        // SAVE DB (IMPORTANT)
+        await db.query(
+            `INSERT INTO messages (conversation_id, sender, message, status, created_at)
+             VALUES ($1,$2,$3,$4,NOW())`,
+            [roomId, sender, message, "sent"]
         );
 
-        const message = result.rows[0];
+        // SEND TO ROOM
+        io.to(roomId).emit("newMessage", {
+            sender,
+            message,
+            status: "sent",
+            time: new Date()
+        });
 
-        // envoyer au receiver s’il est online
-        const receiverSocket = onlineUsers[receiver];
-
-        if (receiverSocket) {
-            io.to(receiverSocket).emit("new-message", message);
-        }
-
-        // envoyer aussi à l’expéditeur
-        io.to(socket.id).emit("new-message", message);
+        // NOTIFICATION GLOBAL
+        socket.broadcast.emit("notification", {
+            sender,
+            roomId
+        });
     });
 
-    // MESSAGE LU ✔✔
-    socket.on("read-message", async (messageId) => {
+    // READ RECEIPT
+    socket.on("messageSeen", async ({ messageId }) => {
+
         await db.query(
-            "UPDATE messages SET is_read = true WHERE id=$1",
+            "UPDATE messages SET status='seen' WHERE id=$1",
             [messageId]
         );
+
+        io.emit("messageSeen", { messageId });
     });
 
     // DISCONNECT
     socket.on("disconnect", () => {
-        for (let user in onlineUsers) {
-            if (onlineUsers[user] === socket.id) {
-                delete onlineUsers[user];
-                break;
-            }
-        }
-        io.emit("online-users", Object.keys(onlineUsers));
+        console.log("User offline");
     });
+
 });
 const storage = multer.diskStorage({
 
@@ -409,38 +414,19 @@ app.get('/chat', (req, res) => {
     return res.redirect('/login');
 }
 });
-app.get('/chat/:user', async (req, res) => {
+app.get('/chat/:id', async (req, res) => {
 
-    if (!req.session.user) {
-        return res.redirect('/login');
-    }
+    const roomId = req.params.id;
 
-    const user1 = req.session.user.nom;
-    const user2 = req.params.user;
-
-    // chercher conversation existante
-    let conv = await db.query(
-        `SELECT * FROM conversations 
-         WHERE (user1=$1 AND user2=$2) 
-         OR (user1=$2 AND user2=$1)`,
-        [user1, user2]
+    const result = await db.query(
+        "SELECT * FROM messages WHERE conversation_id=$1 ORDER BY id ASC",
+        [roomId]
     );
 
-    // si elle n'existe pas → création
-    if (conv.rows.length === 0) {
-        conv = await db.query(
-            `INSERT INTO conversations (user1, user2)
-             VALUES ($1,$2) RETURNING *`,
-            [user1, user2]
-        );
-    }
-
-    const conversation = conv.rows[0];
-
-    res.render('chat', {
-        user: req.session.user,
-        receiver: user2,
-        conversation_id: conversation.id
+    res.render("chat", {
+        messages: result.rows,
+        roomId,
+        user: req.session.user
     });
 });
 

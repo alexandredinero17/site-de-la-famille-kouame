@@ -1,164 +1,227 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <title>Chat</title>
+<meta charset="UTF-8">
+<title>Chat</title>
 
-    <style>
-        body {
-            font-family: Arial;
-            background: #0b141a;
-            color: white;
-            margin: 0;
-        }
+<style>
 
-        #chat-box {
-            height: 80vh;
-            overflow-y: auto;
-            padding: 10px;
-        }
+body {
+    font-family: Arial;
+    background: #0b141a;
+    color: white;
+    margin: 0;
+}
 
-        .msg {
-            padding: 10px;
-            margin: 5px;
-            border-radius: 10px;
-            max-width: 60%;
-        }
+/* HEADER */
+h3 {
+    padding: 10px;
+    background:#202c33;
+    margin:0;
+}
 
-        .me {
-            background: #005c4b;
-            margin-left: auto;
-        }
+/* CHAT BOX */
+#chat-box {
+    height: 80vh;
+    overflow-y: auto;
+    padding: 10px;
+    display:flex;
+    flex-direction:column;
+}
 
-        .other {
-            background: #202c33;
-        }
+/* MESSAGE */
+.msg {
+    padding: 10px;
+    margin: 5px;
+    border-radius: 10px;
+    max-width: 60%;
+    word-wrap: break-word;
+}
 
-        #input {
-            display: flex;
-            position: fixed;
-            bottom: 0;
-            width: 100%;
-            background: #111;
-            padding: 10px;
-        }
+/* MY MESSAGE */
+.me {
+    background: #005c4b;
+    margin-left: auto;
+}
 
-        #msg {
-            flex: 1;
-            padding: 10px;
-            border: none;
-            border-radius: 20px;
-        }
+/* OTHER */
+.other {
+    background: #202c33;
+}
 
-        button {
-            margin-left: 10px;
-            background: #00a884;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 20px;
-            color: white;
-            cursor: pointer;
-        }
-    </style>
+/* INPUT BAR */
+#input {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background: #111;
+    padding: 10px;
+}
+
+#msg {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 20px;
+    outline:none;
+}
+
+button {
+    margin-left: 10px;
+    background: #00a884;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 20px;
+    color: white;
+    cursor: pointer;
+}
+#status{
+    text-align:center;
+    font-size:12px;
+    color:#aaa;
+    padding:5px;
+}
+
+/* SCROLL SMOOTH */
+#chat-box{
+    scroll-behavior:smooth;
+}
+
+/* MESSAGE TIME STYLE */
+.msg div{
+    margin-top:5px;
+}
+</style>
 </head>
 
 <body>
 
-<h3 style="padding:10px;">
-    Chat avec la famille 
+<h3>
+    Chat avec la famille
 </h3>
+
 <div id="status"></div>
+
 <div id="chat-box"></div>
 
-<input id="msg" placeholder="Message..." />
-<input type="file" id="file" />
-<button onclick="send()">Envoyer</button>
-
+<div id="input">
+    <input id="msg" placeholder="Message..." />
+    <button onclick="sendMessage()">Envoyer</button>
+</div>
 <script src="/socket.io/socket.io.js"></script>
 
 <script>
+
 const socket = io();
 
-const sender = "<%= user.nom %>";
-const receiver = "family";
-const conversation_id = "<%= conversation_id %>";
+const roomId = "<%= roomId %>";
+const user = "<%= user.nom %>";
 
-socket.emit("join", sender);
-
-// ONLINE USERS
-socket.on("online-users", (users) => {
-    document.getElementById("status").innerHTML =
-        users.includes(receiver) ? "🟢 En ligne" : "⚫ Hors ligne";
+/* JOIN ROOM */
+socket.emit("joinRoom", {
+    roomId,
+    user
 });
 
-// MESSAGE
-socket.on("new-message", (msg) => {
+/* SEND MESSAGE */
+function sendMessage() {
 
-    const div = document.createElement("div");
-    div.classList.add("msg");
+    const input = document.getElementById("msg");
+    const msg = input.value;
 
-    let html = "";
+    if (!msg.trim()) return;
 
-    if (msg.type === "text") {
-        html = msg.content;
-    }
-
-    if (msg.type === "image") {
-        html = `<img src="${msg.media_url}" width="200">`;
-    }
-
-    if (msg.type === "audio") {
-        html = `<audio controls src="${msg.media_url}"></audio>`;
-    }
-
-    // ✔✔ read status
-    const ticks = msg.is_read ? "✔✔" : "✔";
-
-    div.innerHTML = `
-        <div>${msg.sender}</div>
-        <div>${html}</div>
-        <small>${ticks}</small>
-    `;
-
-    document.getElementById("chat-box").appendChild(div);
-});
-
-// ENVOI MESSAGE
-async function send() {
-
-    const file = document.getElementById("file").files[0];
-    let type = "text";
-    let media_url = null;
-    let content = document.getElementById("msg").value;
-
-    if (file) {
-
-        const form = new FormData();
-        form.append("file", file);
-
-        const res = await fetch("/upload-media", {
-            method: "POST",
-            body: form
-        });
-
-        const data = await res.json();
-        media_url = data.url;
-
-        if (file.type.startsWith("image")) type = "image";
-        if (file.type.startsWith("audio")) type = "audio";
-    }
-
-    socket.emit("send-message", {
-        conversation_id,
-        sender,
-        receiver,
-        type,
-        content,
-        media_url
+    socket.emit("sendMessage", {
+        roomId,
+        message: msg,
+        sender: user
     });
 
-    document.getElementById("msg").value = "";
+    input.value = "";
+
+    socket.emit("stopTyping", { roomId, user });
 }
+
+/* RECEIVE MESSAGE */
+socket.on("newMessage", (data) => {
+
+    const chat = document.getElementById("chat-box");
+
+    const div = document.createElement("div");
+
+    div.className = "msg " + (data.sender === user ? "me" : "other");
+
+    div.innerHTML = `
+        <b>${data.sender}</b><br>
+        ${data.message}
+        <div style="font-size:10px;opacity:0.6;">
+            ${data.status || "sent"}
+        </div>
+    `;
+
+    chat.appendChild(div);
+
+    chat.scrollTop = chat.scrollHeight;
+});
+
+/* 🔔 NOTIFICATION PRO */
+socket.on("notification", (data) => {
+
+    showNotification("📩 " + data.sender + " a envoyé un message");
+
+});
+
+/* NOTIFICATION SYSTEM (PRO) */
+function showNotification(text) {
+
+    // badge visuel simple
+    const status = document.getElementById("status");
+
+    status.innerText = text;
+    status.style.background = "#00a884";
+    status.style.padding = "5px";
+    status.style.borderRadius = "5px";
+
+    setTimeout(() => {
+        status.innerText = "";
+        status.style.background = "none";
+    }, 3000);
+}
+
+/* 🔥 TYPING SYSTEM */
+let typingTimeout;
+
+document.getElementById("msg").addEventListener("input", () => {
+
+    socket.emit("typing", { roomId, user });
+
+    clearTimeout(typingTimeout);
+
+    typingTimeout = setTimeout(() => {
+        socket.emit("stopTyping", { roomId, user });
+    }, 1000);
+
+});
+
+socket.on("typing", (data) => {
+
+    document.getElementById("status").innerText =
+        data.user + " est en train d'écrire...";
+
+});
+
+socket.on("stopTyping", () => {
+    document.getElementById("status").innerText = "";
+});
+
+/* 🟢 ONLINE STATUS */
+socket.on("userStatus", (data) => {
+
+    console.log(data.user + " : " + data.status);
+
+});
+
 </script>
 </body>
 </html>
