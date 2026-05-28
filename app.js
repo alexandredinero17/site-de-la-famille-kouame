@@ -137,18 +137,23 @@ const storage = multer.diskStorage({
 
     destination: function (req, file, cb) {
 
-        cb(null, path.join(__dirname, 'public/uploads'));
+        const uploadPath = path.join(__dirname, 'public/uploads');
 
+        if (!fs.existsSync(uploadPath)) {
+            fs.mkdirSync(uploadPath, { recursive: true });
+        }
+
+        cb(null, uploadPath);
     },
 
     filename: function (req, file, cb) {
 
-        const unique =
+        const uniqueName =
             Date.now() + "-" + Math.round(Math.random() * 1E9);
 
         cb(
             null,
-            unique + path.extname(file.originalname)
+            uniqueName + path.extname(file.originalname)
         );
     }
 });
@@ -175,7 +180,7 @@ const upload = multer({
 
         } else {
 
-            cb(new Error("Format non autorisé"));
+            cb(new Error("Format image invalide"));
         }
     }
 });
@@ -677,6 +682,50 @@ app.get('/admin/posts', isAdmin, async (req, res) => {
         res.status(500).send("Erreur posts admin");
     }
 });
+app.post(
+    '/upload-image',
+    upload.single('image'),
+    async (req, res) => {
+
+        if (!req.session.user) {
+            return res.redirect('/login');
+        }
+
+        try {
+
+            if (!req.file) {
+                return res.send("Aucune image");
+            }
+
+            const imagePath =
+                "/uploads/" + req.file.filename;
+
+            await db.query(
+                `
+                INSERT INTO galerie
+                (user_name, image, description, date)
+                VALUES ($1, $2, $3, $4)
+                `,
+                [
+                    req.session.user.nom,
+                    imagePath,
+                    req.body.description || null,
+                    new Date()
+                ]
+            );
+
+            res.redirect('/galerie');
+
+        } catch (err) {
+
+            console.log("UPLOAD ERROR :", err);
+
+            res.status(500).send(
+                "Erreur interne du serveur lors upload"
+            );
+        }
+    }
+);
 
 // ================= START SERVER =================
 const PORT = process.env.PORT || 10000;
