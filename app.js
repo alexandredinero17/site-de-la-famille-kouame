@@ -409,25 +409,49 @@ app.get('/events', (req, res) => {
 
 // ================= CHAT =================
 app.get('/chat', (req, res) => {
-    res.render('chat', { user: req.session.user });
+
     if (!req.session.user) {
-    return res.redirect('/login');
-}
+        return res.redirect('/login');
+    }
+
+    res.render('chat', {
+        user: req.session.user,
+        messages: [],
+        roomId: null
+    });
+    setTimeout(() => {
+    window.scrollTo(0, document.body.scrollHeight);
+}, 100);
 });
 app.get('/chat/:id', async (req, res) => {
 
-    const roomId = req.params.id;
+    if (!req.session.user) {
+        return res.redirect('/login');
+    }
 
-    const result = await db.query(
-        "SELECT * FROM messages WHERE conversation_id=$1 ORDER BY id ASC",
-        [roomId]
-    );
+    try {
 
-    res.render("chat", {
-        messages: result.rows,
-        roomId,
-        user: req.session.user
-    });
+        const roomId = req.params.id;
+
+        // ⚡ LIMIT IMPORTANT (sinon lent)
+        const result = await db.query(
+            `SELECT * FROM messages 
+             WHERE conversation_id=$1 
+             ORDER BY id DESC 
+             LIMIT 50`,
+            [roomId]
+        );
+
+        res.render("chat", {
+            messages: result.rows.reverse(), // remettre ordre normal
+            roomId,
+            user: req.session.user
+        });
+
+    } catch (err) {
+        console.log("CHAT ERROR:", err);
+        res.status(500).send("Erreur chat");
+    }
 });
 
 // ================= LOGOUT =================
