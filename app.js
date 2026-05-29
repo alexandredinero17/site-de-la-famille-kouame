@@ -440,6 +440,13 @@ app.get('/chat/:username', async (req, res) => {
 
 });
 // ================= HOME =================
+app.use((req, res, next) => {
+
+    res.locals.user = req.session.user || null;
+
+    next();
+
+});
 app.get('/', (req, res) => {
     db.query("SELECT * FROM posts ORDER BY id DESC", (err, result) => {
         if (err) return res.status(500).send(err.message);
