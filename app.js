@@ -95,25 +95,24 @@ io.on("connection", (socket) => {
 });
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, "public/uploads");
+
+        const dir = "public/uploads";
+
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+
+        cb(null, dir);
     },
+
     filename: (req, file, cb) => {
-        const name = Date.now() + "-" + Math.round(Math.random() * 1e9);
-        cb(null, name + path.extname(file.originalname));
+        const unique = Date.now() + "-" + Math.round(Math.random() * 1e9);
+        cb(null, unique + path.extname(file.originalname));
     }
 });
 
-const upload = multer({
-    storage,
-    limits: { fileSize: 5 * 1024 * 1024 },
-    fileFilter: (req, file, cb) => {
-        if (file.mimetype.startsWith("image/")) {
-            cb(null, true);
-        } else {
-            cb(new Error("Fichier non valide"));
-        }
-    }
-});
+const upload = multer({ storage });
+
 app.get('/conversations', async (req, res) => {
 
     if (!req.session.user) {
@@ -189,48 +188,59 @@ app.post('/register', upload.single('photo'), async (req, res) => {
 
     try {
 
-        const {
-            nom,
-            email,
-            telephone,
-            profession,
-            branche,
-            description,
-            password
-        } = req.body;
+        const { nom, email, telephone, profession, branche, description, password } = req.body;
 
-        const photo = req.file
-            ? "/uploads/" + req.file.filename
-            : "/images/default.png";
+        // 🔒 validation minimale
+        if (!nom || !email || !password) {
+            return res.status(400).send("Nom, email et mot de passe obligatoires");
+        }
 
+        // 🔒 vérifier si email existe déjà
+        const check = await db.query(
+            "SELECT id FROM users WHERE email=$1",
+            [email]
+        );
+
+        if (check.rows.length > 0) {
+            return res.status(400).send("Email déjà utilisé");
+        }
+
+        // 🔐 hash password
         const hash = await bcrypt.hash(password, 10);
 
+        // 📸 photo safe (ANTI-CRASH)
+        let photo = "/images/default.png";
+
+        if (req.file && req.file.filename) {
+            photo = "/uploads/" + req.file.filename;
+        }
+
+        // 💾 insert user
         await db.query(
-            `INSERT INTO users
-            (nom,email,telephone,profession,branche,description,password,photo)
+            `INSERT INTO users 
+            (nom, email, telephone, profession, branche, description, password, photo)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
             [
                 nom,
                 email,
-                telephone,
-                profession,
-                branche,
-                description,
+                telephone || null,
+                profession || null,
+                branche || null,
+                description || null,
                 hash,
                 photo
             ]
         );
 
-        res.redirect('/dashboard');
+        return res.redirect('/login');
 
-       } catch (err) {
+    } catch (err) {
 
-        console.log("REGISTER ERROR:", err);
+        console.log("🔥 REGISTER ERROR:", err);
 
-        res.status(500).send("Erreur interne du serveur création compte");
+        return res.status(500).send("Erreur interne serveur register");
     }
 });
-
 // ================= LOGIN =================
 app.post('/login', async (req, res) => {
 
