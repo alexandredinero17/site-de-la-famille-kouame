@@ -100,8 +100,6 @@ button {
 <h3>
     Chat avec la famille
 </h3>
-
-<div id="status"></div>
 <div id="chat-box"></div>
 
 <div id="input">
@@ -112,10 +110,27 @@ button {
 <script src="/socket.io/socket.io.js"></script>
 
 <script>
-
 const socket = io();
 
+socket.emit("online", "<%= user.id %>");
 socket.emit("join", "<%= roomId %>");
+
+socket.on("user_online", (userId) => {
+    console.log("User online:", userId);
+});
+
+function send() {
+
+    const msg = document.getElementById("msg").value;
+
+    socket.emit("message", {
+        conversationId: "<%= roomId %>",
+        senderId: "<%= user.id %>",
+        message: msg
+    });
+
+    document.getElementById("msg").value = "";
+}
 
 socket.on("message", (data) => {
 
@@ -123,24 +138,13 @@ socket.on("message", (data) => {
 
     div.className = "msg";
 
-    div.innerHTML = `<b>${data.sender}</b><br>${data.message}`;
+    div.innerHTML = `
+        <b>${data.senderId}</b><br>
+        ${data.message}
+    `;
 
     document.getElementById("chat-box").appendChild(div);
 });
-
-socket.on("newMessage", (data) => {
-
-    const chat = document.getElementById("chat-box");
-
-    const div = document.createElement("div");
-
-    div.innerHTML = `<b>${data.sender}</b>: ${data.message}`;
-
-    chat.appendChild(div);
-
-});
-
-
 </script>
 
 </body>

@@ -72,27 +72,96 @@ function isAdmin(req, res, next) {
 // ================= SOCKET.IO =================
 io.on("connection", (socket) => {
 
-    socket.on("join", (roomId) => {
-        socket.join(roomId);
-    });
-
-    socket.on("message", async (data) => {
-
-        const { conversationId, sender, message } = data;
+    // 🟢 ONLINE STATUS
+    socket.on("online", async (userId) => {
 
         await db.query(
-            `INSERT INTO messages (conversation_id, sender, message)
-             VALUES ($1,$2,$3)`,
-            [conversationId, sender, message]
+            "UPDATE users SET online=true WHERE id=$1",
+            [userId]
         );
 
+        io.emit("user_online", userId);
+    });
+
+    // 💬 JOIN ROOM
+    socket.on("join", (conversationId) => {
+        socket.join(conversationId);
+    });
+
+    // ✉️ SEND MESSAGE
+    socket.on("message", async (data) => {
+
+        const { conversationId, senderId, message } = data;
+
+        // save message
+        const result = await db.query(
+            `INSERT INTO messages (conversation_id, sender_id, message)
+             VALUES ($1,$2,$3) RETURNING id`,
+            [conversationId, senderId, message]
+        );
+
+        const messageId = result.rows[0].id;
+
+        // status auto created
+        await db.query(
+            `INSERT INTO message_status (message_id, user_id, status)
+             VALUES ($1,$2,'sent')`,
+            [messageId, senderId]
+        );
+
+        // broadcast
         io.to(conversationId).emit("message", {
-            sender,
-            message
+            id: messageId,
+            conversationId,
+            senderId,
+            message,
+            status: "sent"
         });
     });
 
+    // 👁️ MESSAGE SEEN
+    socket.on("seen", async ({ messageId, userId }) => {
+
+        await db.query(
+            `UPDATE message_status 
+             SET status='seen'
+             WHERE message_id=$1 AND user_id=$2`,
+            [messageId, userId]
+        );
+
+        io.emit("message_seen", { messageId, userId });
+    });
+
 });
+async function getOrCreateConversation(user1, user2) {
+
+    const existing = await db.query(
+        `SELECT c.id
+         FROM conversations c
+         JOIN conversation_users cu1 ON c.id = cu1.conversation_id
+         JOIN conversation_users cu2 ON c.id = cu2.conversation_id
+         WHERE cu1.user_id=$1 AND cu2.user_id=$2`,
+        [user1, user2]
+    );
+
+    if (existing.rows.length > 0) {
+        return existing.rows[0].id;
+    }
+
+    const conv = await db.query(
+        "INSERT INTO conversations DEFAULT VALUES RETURNING id"
+    );
+
+    const convId = conv.rows[0].id;
+
+    await db.query(
+        "INSERT INTO conversation_users (conversation_id, user_id) VALUES ($1,$2),($1,$3)",
+        [convId, user1, user2]
+    );
+
+    return convId;
+}
+
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
 
@@ -392,31 +461,25 @@ app.get('/events', (req, res) => {
 
 
 // ================= CHAT =================
-app.get('/chat/:id', async (req, res) => {
+app.get('/chat/:userId', async (req, res) => {
 
-    if (!req.session.user) return res.redirect('/login');
+    const myId = req.session.user.id;
+    const otherId = req.params.userId;
 
-    try {
+    const convId = await getOrCreateConversation(myId, otherId);
 
-        const roomId = req.params.id;
+    const messages = await db.query(
+        `SELECT * FROM messages 
+         WHERE conversation_id=$1 
+         ORDER BY created_at ASC`,
+        [convId]
+    );
 
-        const result = await db.query(
-            `SELECT * FROM messages 
-             WHERE conversation_id = $1 
-             ORDER BY created_at ASC`,
-            [roomId]
-        );
-
-        res.render("chat", {
-            messages: result.rows,
-            roomId,
-            user: req.session.user
-        });
-
-    } catch (err) {
-        console.log("CHAT ERROR:", err);
-        res.status(500).send("Erreur chat");
-    }
+    res.render("chat", {
+        roomId: convId,
+        messages: messages.rows,
+        user: req.session.user
+    });
 });
 // ================= LOGOUT =================
 app.get('/logout', (req, res) => {
