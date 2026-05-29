@@ -445,9 +445,8 @@ try {
 
     const result = await db.query(
 
-        `SELECT 
+        `SELECT
             conversations.id,
-            conversations.created_at,
 
             u1.user_name AS user1_name,
             u2.user_name AS user2_name,
@@ -477,7 +476,7 @@ try {
 
 } catch (err) {
 
-    console.log(err);
+    console.log("CONVERSATIONS ERROR:", err);
 
     res.status(500).send("Erreur conversations");
 }
@@ -486,9 +485,9 @@ try {
 });
 
 
+
 // ================= CHAT =================
 app.get('/chat/:username', async (req, res) => {
-
 
 try {
 
@@ -496,22 +495,27 @@ try {
         return res.redirect('/login');
     }
 
-    // moi
+    // utilisateur connecté
     const me = req.session.user;
 
-    // autre user
-    const otherResult = await db.query(
+    // utilisateur cible
+    const userResult = await db.query(
         "SELECT * FROM users WHERE user_name=$1",
         [req.params.username]
     );
 
-    if (otherResult.rows.length === 0) {
+    if (userResult.rows.length === 0) {
         return res.send("Utilisateur introuvable");
     }
 
-    const other = otherResult.rows[0];
+    const other = userResult.rows[0];
 
-    // conversation
+    // empêcher chat avec soi-même
+    if (other.id === me.id) {
+        return res.redirect('/conversations');
+    }
+
+    // conversation existante ?
     let conv = await db.query(
         `SELECT * FROM conversations
          WHERE (user1=$1 AND user2=$2)
@@ -522,6 +526,7 @@ try {
 
     let conversationId;
 
+    // sinon création
     if (conv.rows.length > 0) {
 
         conversationId = conv.rows[0].id;
@@ -538,9 +543,10 @@ try {
         conversationId = created.rows[0].id;
     }
 
-    // messages
+    // récupérer messages
     const messages = await db.query(
-        `SELECT * FROM messages
+        `SELECT *
+         FROM messages
          WHERE conversation_id=$1
          ORDER BY id ASC`,
         [conversationId]
@@ -548,16 +554,16 @@ try {
 
     res.render("chat", {
         roomId: conversationId,
+        messages: messages.rows,
         user: me,
-        otherUser: other,
-        messages: messages.rows
+        otherUser: other
     });
 
 } catch (err) {
 
-    console.log(err);
+    console.log("CHAT ERROR:", err);
 
-    res.status(500).send("Erreur chat");
+    res.status(500).send("Erreur chat serveur");
 }
 
 
