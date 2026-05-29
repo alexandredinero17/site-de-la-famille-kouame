@@ -149,39 +149,63 @@ io.on("connection", (socket) => {
 
     socket.on("join", (conversationId) => {
 
-        if (typeof conversationId !== "number" && isNaN(conversationId)) {
-            console.log("❌ JOIN INVALID:", conversationId);
-            return;
-        }
+        if (!conversationId) return;
 
         socket.join(String(conversationId));
+
+        console.log("JOIN ROOM:", conversationId);
     });
 
     socket.on("message", async (data) => {
 
-        const { conversationId, sender_username, message } = data;
+        try {
 
-        // 🔥 BLOCAGE BUG
-        if (!conversationId || isNaN(conversationId)) {
-            console.log("❌ MESSAGE REJETÉ:", data);
-            return;
-        }
-
-        await db.query(
-            `INSERT INTO messages (conversation_id, sender_username, message)
-             VALUES ($1,$2,$3)`,
-            [
-                Number(conversationId),
+            const {
+                conversationId,
                 sender_username,
                 message
-            ]
-        );
+            } = data;
 
-        io.to(String(conversationId)).emit("message", {
-            conversationId,
-            sender_username,
-            message
-        });
+            if (
+                !conversationId ||
+                !sender_username ||
+                !message
+            ) {
+                return;
+            }
+
+            const saved = await db.query(
+                `
+                INSERT INTO messages
+                (
+                    conversation_id,
+                    sender_username,
+                    message
+                )
+                VALUES ($1,$2,$3)
+                RETURNING *
+                `,
+                [
+                    Number(conversationId),
+                    sender_username,
+                    xss(message)
+                ]
+            );
+
+            io.to(String(conversationId)).emit(
+                "message",
+                saved.rows[0]
+            );
+
+        } catch (err) {
+
+            console.log("SOCKET ERROR:", err);
+        }
+    });
+
+    socket.on("disconnect", () => {
+
+        console.log("USER DISCONNECTED");
     });
 });
 // ================= HOME =================
@@ -261,11 +285,11 @@ app.post('/register', upload.single('photo'), async (req, res) => {
         // 💾 insert user
         await db.query(
             `INSERT INTO users 
-            (nom, username, email, telephone, profession, branche, description, password, photo)
+            (nom, user_name, email, telephone, profession, branche, description, password, photo)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
             [
                 nom,
-                username,
+                user_name,
                 email,
                 telephone || null,
                 profession || null,
@@ -293,8 +317,8 @@ app.post('/login', async (req, res) => {
     try {
 
         const result = await db.query(
-            "SELECT id, nom, email, password, role FROM users WHERE email = $1 or username = $1 LIMIT 1",
-            [email]
+            "SELECT id, nom, email, password, role FROM users WHERE email = $1 or user_name = $1 LIMIT 1",
+            [email,user_name]
         );
 
         if (result.rows.length === 0) {
@@ -339,29 +363,7 @@ app.post("/profile/photo", upload.single("photo"), async (req, res) => {
         res.status(500).send("Erreur photo profil");
     }
 });
-app.post("/upload-image", upload.single("image"), async (req, res) => {
 
-    try {
-
-        const image = "/uploads/" + req.file.filename;
-
-        await db.query(
-            `INSERT INTO galerie (user_name, image, description)
-             VALUES ($1,$2,$3)`,
-            [
-                req.session.user.nom,
-                image,
-                req.body.description || ""
-            ]
-        );
-
-        res.redirect("/galerie");
-
-    } catch (err) {
-        console.log(err);
-        res.status(500).send("Erreur upload image");
-    }
-});
 // ================= DASHBOARD =================
 app.get('/dashboard', (req, res) => {
     if (!req.session.user) return res.redirect('/login');
@@ -435,56 +437,73 @@ app.get('/events', (req, res) => {
 // ================= MESSAGES =================
 app.get('/conversations', async (req, res) => {
 
-try {
+    try {
 
-    if (!req.session.user) {
-        return res.redirect('/login');
+        if (!req.session.user) {
+            return res.redirect('/login');
+        }
+
+        const myId = req.session.user.id;
+
+        const result = await db.query(
+            `
+            SELECT
+                c.id,
+
+                u1.id AS user1_id,
+                u2.id AS user2_id,
+
+                u1.nom AS user1_nom,
+                u2.nom AS user2_nom,
+
+                u1.user_name AS user1_username,
+                u2.user_name AS user2_username,
+
+                u1.photo AS user1_photo,
+                u2.photo AS user2_photo,
+
+                (
+                    SELECT message
+                    FROM messages
+                    WHERE conversation_id = c.id
+                    ORDER BY id DESC
+                    LIMIT 1
+                ) AS last_message
+
+            FROM conversations c
+
+            JOIN users u1
+            ON c.user1 = u1.id
+
+            JOIN users u2
+            ON c.user2 = u2.id
+
+            WHERE c.user1=$1
+            OR c.user2=$1
+
+            ORDER BY c.id DESC
+            `,
+            [myId]
+        );
+
+        res.render("conversations", {
+            conversations: result.rows,
+            user: req.session.user
+        });
+
+    } catch (err) {
+
+        console.log("CONVERSATIONS ERROR:", err);
+
+        res.status(500).send("Erreur conversations");
     }
-
-    const myId = req.session.user.id;
-
-    const result = await db.query(
-
-        `SELECT
-            conversations.id,
-
-            u1.user_name AS user1_name,
-            u2.user_name AS user2_name,
-
-            u1.photo AS user1_photo,
-            u2.photo AS user2_photo
-
-        FROM conversations
-
-        JOIN users u1
-        ON conversations.user1 = u1.id
-
-        JOIN users u2
-        ON conversations.user2 = u2.id
-
-        WHERE conversations.user1=$1
-        OR conversations.user2=$1
-
-        ORDER BY conversations.created_at DESC`,
-        [myId]
-    );
-
-    res.render("conversations", {
-        conversations: result.rows,
-        user: req.session.user
-    });
-
-} catch (err) {
-
-    console.log("CONVERSATIONS ERROR:", err);
-
-    res.status(500).send("Erreur conversations");
-}
-
-
 });
+app.use((req, res, next) => {
 
+    res.locals.user = req.session.user || null;
 
+    next();
+});
 
 // ================= CHAT =================
 app.get('/chat/:username', async (req, res) => {
