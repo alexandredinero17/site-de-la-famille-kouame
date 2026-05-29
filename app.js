@@ -794,6 +794,22 @@ app.get('/chat/:username', async (req, res) => {
         );
     }
 });
+
+// ================= ADMIN MIDDLEWARE =================
+
+function isAdmin(req, res, next){
+
+    if(
+        req.session.user &&
+        req.session.user.role === "admin"
+    ){
+        return next();
+    }
+
+    return res.status(403).send("Accès refusé");
+}
+
+
 // ================= LOGOUT =================
 app.get('/logout', (req, res) => {
     req.session.destroy(() => res.redirect('/'));
