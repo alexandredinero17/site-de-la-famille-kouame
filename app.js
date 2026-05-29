@@ -32,6 +32,12 @@ io.on('connection', (socket) => {
         socket.join('conv_' + conversationId);
 
     });
+        // rejoindre room utilisateur
+    socket.on('join_user', (userId) => {
+
+        socket.join('user_' + userId);
+
+    });
 
     socket.on('send_message', async (data) => {
 
@@ -76,6 +82,16 @@ io.on('connection', (socket) => {
                 created_at: newMessage.created_at
 
             });
+              // 🔥 notification temps réel
+        io.to('user_' + receiver_id)
+        .emit('new_notification', {
+
+            conversation_id,
+            sender_id,
+            message
+
+        });
+
 
         } catch (err) {
 
