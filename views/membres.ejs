@@ -186,8 +186,9 @@ footer{
 </p>
 
 <a class="btn chat"
-   href="/chat/<%= membre.username %>">
-   💬 Discuter
+  <a href="/chat/<%= membre.username %>" onclick="this.innerText='Chargement...'">
+    💬 Discuter
+</a>
 </a>
 
 <% } %>

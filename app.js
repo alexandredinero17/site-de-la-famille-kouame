@@ -259,7 +259,7 @@ app.get('/conversations', async (req, res) => {
 
 // ================= CHAT PRIVÉ =================
 
-app.get('/chat/:username', (req, res) => {
+app.get('/chat/:username', async (req, res) => {
 
     if (!req.session.user) {
         return res.redirect('/login');
@@ -267,30 +267,51 @@ app.get('/chat/:username', (req, res) => {
 
     const username = req.params.username;
 
-    db.query(
-        "SELECT * FROM users WHERE username = $1",
-        [username],
-        (err, result) => {
+    if (username === req.session.user.username) {
+        return res.redirect('/membres');
+    }
 
-            if (err) {
-                console.log(err);
-                return res.send("Erreur serveur");
-            }
+    try {
 
-            if (result.rows.length === 0) {
-                return res.send("Utilisateur introuvable");
-            }
+        const userResult = await db.query(
+            "SELECT * FROM users WHERE username = $1 LIMIT 1",
+            [username]
+        );
 
-            const membre = result.rows[0];
-
-           res.render('chat', {
-    membre,
-    user,
-    conversation
-});
-
+        if (userResult.rows.length === 0) {
+            return res.send("Utilisateur introuvable");
         }
-    );
+
+        const membre = userResult.rows[0];
+
+        // ⚡ ne bloque pas si conversation n'existe pas
+        let conversation = null;
+
+        const convResult = await db.query(
+            `SELECT * FROM conversations 
+             WHERE id IN (
+                 SELECT conversation_id 
+                 FROM conversation_users 
+                 WHERE user_id = $1
+             )
+             LIMIT 1`,
+            [req.session.user.id]
+        );
+
+        if (convResult.rows.length > 0) {
+            conversation = convResult.rows[0];
+        }
+
+        res.render('chat', {
+            membre,
+            user: req.session.user,
+            conversation
+        });
+
+    } catch (err) {
+        console.log(err);
+        res.send("Erreur serveur");
+    }
 
 });
 // ================= HOME =================
