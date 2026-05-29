@@ -433,6 +433,7 @@ app.get('/events', (req, res) => {
 });
 
 // ================= MESSAGES =================
+// ================= CONVERSATIONS =================
 app.get('/conversations', async (req, res) => {
 
     try {
@@ -446,12 +447,17 @@ app.get('/conversations', async (req, res) => {
         const result = await db.query(
             `
             SELECT
+
                 conversations.id,
 
-                u1.username AS user1_name,
-                u2.username AS user2_name,
-
+                u1.id AS user1_id,
+                u1.nom AS user1_nom,
+                u1.username AS user1_username,
                 u1.photo AS user1_photo,
+
+                u2.id AS user2_id,
+                u2.nom AS user2_nom,
+                u2.username AS user2_username,
                 u2.photo AS user2_photo
 
             FROM conversations
@@ -462,16 +468,48 @@ app.get('/conversations', async (req, res) => {
             JOIN users u2
             ON conversations.user2 = u2.id
 
-            WHERE conversations.user1=$1
-            OR conversations.user2=$1
+            WHERE
+            conversations.user1 = $1
+            OR
+            conversations.user2 = $1
 
             ORDER BY conversations.created_at DESC
             `,
             [myId]
         );
 
-        res.render("conversations", {
-            conversations: result.rows,
+        // construire vrai interlocuteur
+        const conversations = result.rows.map(conv => {
+
+            let otherUser;
+
+            if (conv.user1_id === myId) {
+
+                otherUser = {
+                    id: conv.user2_id,
+                    nom: conv.user2_nom,
+                    username: conv.user2_username,
+                    photo: conv.user2_photo
+                };
+
+            } else {
+
+                otherUser = {
+                    id: conv.user1_id,
+                    nom: conv.user1_nom,
+                    username: conv.user1_username,
+                    photo: conv.user1_photo
+                };
+            }
+
+            return {
+                id: conv.id,
+                otherUser
+            };
+        });
+
+        res.render('conversations', {
+            conversations,
             user: req.session.user
         });
 
@@ -482,8 +520,6 @@ app.get('/conversations', async (req, res) => {
         res.status(500).send("Erreur conversations");
     }
 });
-
-
 // ================= PRIVATE CHAT =================
 app.get('/chat/:username', async (req, res) => {
 

@@ -242,24 +242,27 @@ body{
     💬 Conversations
 </div>
 
-<% conversations.forEach(c => { %>
+<% conversations.forEach(conv => { %>
 
-<div class="conv">
+    <a href="/chat/<%= conv.otherUser.username %>">
 
-    <% 
-    const otherUser =
-        c.user1 === user.username
-        ? c.user2
-        : c.user1;
-    %>
+        <div class="conversation">
 
-    <a href="/chat/<%= otherUser %>">
-        @<%= otherUser %>
+            <img
+                src="<%= conv.otherUser.photo %>"
+                width="50"
+                height="50"
+                style="border-radius:50%;object-fit:cover;"
+            >
+
+            <h3>
+                <%= conv.otherUser.nom %>
+            </h3>
+
+        </div>
+
     </a>
 
-</div>
-
 <% }) %>
-
 </body>
 </html>
