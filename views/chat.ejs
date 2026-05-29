@@ -449,7 +449,7 @@ const socket = io();
 const roomId = Number("<%= roomId %>");
 
 socket.emit("join", roomId);
-socket.emit("user_connected", "<%= user.id %>");
+socket.emit("user_online", "<%= user.id %>");
 
 const chatBox = document.getElementById("chat-box");
 
@@ -496,15 +496,22 @@ function sendMessage(){
 
 // ================= ENTER =================
 
-document
-.getElementById("msg")
-.addEventListener("keypress", function(e){
-
-    if(e.key === "Enter"){
-
-        sendMessage();
-    }
+input.addEventListener("input", () => {
+    socket.emit("typing", {
+        conversationId,
+        userId,
+        isTyping: true
+    });
 });
+chatBox.addEventListener("scroll", () => {
+
+    socket.emit("message_seen", {
+        messageId: lastMessageId,
+        userId
+    });
+
+});
+
 
 // ================= RECEIVE =================
 
@@ -550,6 +557,7 @@ socket.on("message", (data) => {
 
     scrollBottom();
 });
+
 
 </script>
 

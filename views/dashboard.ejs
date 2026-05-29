@@ -377,7 +377,9 @@
 </form>
 
 <script>
+const socket = io();
 
+socket.emit("user_online", "<%= user.id %>");
     // Animation apparition au scroll
 
     const cards = document.querySelectorAll('.card');

@@ -265,4 +265,9 @@ body{
 
 <% }) %>
 </body>
+<script>
+const socket = io();
+
+socket.emit("user_online", "<%= user.id %>");
+</script>
 </html>
