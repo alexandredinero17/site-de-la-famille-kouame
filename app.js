@@ -455,7 +455,7 @@ app.get('/delete-image/:id', isAdmin, async (req, res) => {
             [id]
         );
 
-        if (result.rows.length === 0) {
+        if (!result.rows || result.rows.length === 0) {
             return res.status(404).send("Image introuvable");
         }
 
@@ -466,16 +466,25 @@ app.get('/delete-image/:id', isAdmin, async (req, res) => {
             [id]
         );
 
-        // supprimer fichier sans bloquer serveur
-        const fullPath = path.join(__dirname, "public", imagePath);
-
-        fs.unlink(fullPath, () => {});
-
+        // réponse immédiate (évite timeout)
         res.redirect('/admin/gallery');
 
+        // suppression fichier en arrière-plan
+        if (imagePath) {
+            const fullPath = path.join(__dirname, "public", imagePath);
+
+            fs.unlink(fullPath, (err) => {
+                if (err) {
+                    console.log("Fichier déjà supprimé ou introuvable");
+                }
+            });
+        }
+
     } catch (err) {
-        console.log("DELETE IMAGE ERROR:", err);
-        res.status(500).send("Erreur serveur suppression image");
+
+        console.log("🔥 DELETE IMAGE ERROR:", err);
+
+        res.status(500).send("Erreur interne du serveur");
     }
 });
 app.get('/admin/membres', isAdmin, async (req, res) => {
