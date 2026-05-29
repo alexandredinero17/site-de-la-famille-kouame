@@ -525,40 +525,31 @@ app.get('/galerie', (req, res) => {
 
 // ================= MEMBRES =================
 
-app.get('/membres', async (req, res) => {
+app.get('/membres', (req, res) => {
 
-    try{
-
-        if(!req.session.user){
-
-            return res.redirect('/login');
-        }
-
-        const result = await db.query(
-
-            `SELECT
-                id,
-                nom,
-                username,
-                email,
-                photo
-            FROM users
-            ORDER BY id DESC`
-        );
-
-        res.render('membres', {
-
-            membres: result.rows,
-
-            user: req.session.user
-        });
-
-    }catch(err){
-
-        console.log("MEMBRES ERROR :", err);
-
-        res.status(500).send("Erreur interne du serveur");
+    if (!req.session.user) {
+        return res.redirect('/login');
     }
+
+    db.query(
+        "SELECT * FROM users ORDER BY id DESC",
+        (err, results) => {
+
+            if (err) {
+                console.log("ERREUR POSTGRESQL MEMBRES:", err);
+                return res.send("Erreur chargement membres");
+            }
+
+            console.log(results.rows);
+
+            res.render('membres', {
+                membres: results.rows,
+                user: req.session.user
+            });
+
+        }
+    );
+
 });
 
 
