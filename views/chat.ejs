@@ -192,6 +192,7 @@ function sendMessage(){
     message
 
 });
+
 socket.on('new_notification', (data) => {
 
     const div = document.createElement('div');
@@ -207,6 +208,14 @@ socket.on('new_notification', (data) => {
     .getElementById('notif-box')
     .appendChild(div);
 
+    // son
+    const audio = new Audio(
+        'public/sounds/universfield-new-notification-057-494255.mp3'
+    );
+
+    audio.play();
+
+    // suppression auto
     setTimeout(() => {
 
         div.remove();
