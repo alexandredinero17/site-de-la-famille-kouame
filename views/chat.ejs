@@ -449,6 +449,7 @@ const socket = io();
 const roomId = Number("<%= roomId %>");
 
 socket.emit("join", roomId);
+socket.emit("user_connected", "<%= user.id %>");
 
 const chatBox = document.getElementById("chat-box");
 
