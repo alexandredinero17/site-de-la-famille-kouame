@@ -1,45 +1,4 @@
-
 <!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>Membres</title>
-    <link rel="stylesheet" href="/css/style.css">
-    
-</head>
-<style>
-    .actions{
-    display:flex;
-    gap:10px;
-}
-
-.btn-chat{
-    background:#00a884;
-    color:white;
-    padding:8px 12px;
-    border-radius:20px;
-    text-decoration:none;
-    font-size:14px;
-}
-
-.btn-wa{
-    background:#25D366;
-    color:white;
-    padding:8px 12px;
-    border-radius:20px;
-    text-decoration:none;
-    font-size:14px;
-}
-</style>
-<body>
-
-<header>
-    <h1>Nos Membres</h1>
-</header>
-       <div class="container">
-
- <!DOCTYPE html>
-
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
@@ -174,112 +133,77 @@ footer{
 
 <div class="container">
 
-<div class="members-grid">
+    <div class="members-grid">
 
-<% membres.forEach(membre => { %>
+        <% membres.forEach(membre => { %>
 
-<div class="card">
+        <div class="card">
 
-    
-<div class="top">
+            <div class="top">
 
-    <img class="avatar"
-         src="<%= membre.photo || '/images/default.png' %>?t=<%= Date.now() %>">
+                <img class="avatar"
+                     src="<%= membre.photo || '/images/default.png' %>?t=<%= Date.now() %>">
 
-    <div>
+                <div>
+                    <h2><%= membre.nom %></h2>
 
-        <h2><%= membre.nom %></h2>
+                    <div class="username">
+                        @<%= membre.username %>
+                    </div>
 
-        <div class="username">
-            @<%= membre.username %>
+                    <% if(membre.en_ligne){ %>
+                        <div class="online">● En ligne</div>
+                    <% } else { %>
+                        <div class="offline">● Hors ligne</div>
+                    <% } %>
+                </div>
+
+            </div>
+
+            <div class="info">
+
+                <p>
+                    <strong>Profession :</strong>
+                    <%= membre.profession || 'Non renseignée' %>
+                </p>
+
+                <p>
+                    <strong>Branche :</strong>
+                    <%= membre.branche || 'Non renseignée' %>
+                </p>
+
+                <p>
+                    <%= membre.description || 'Aucune description' %>
+                </p>
+
+            </div>
+
+            <div class="actions">
+
+                <a class="btn-chat"
+                   href="/chat/<%= membre.username %>">
+                    💬 Discuter
+                </a>
+
+                <% if(membre.telephone){ %>
+
+                <a class="btn-wa"
+                   target="_blank"
+                   href="https://wa.me/<%= membre.telephone.replace(/[^0-9]/g,'') %>">
+                    📲 WhatsApp
+                </a>
+
+                <% } %>
+
+            </div>
+
         </div>
 
-        <% if(membre.online){ %>
-
-            <div class="online">
-                🟢 En ligne
-            </div>
-
-        <% } else { %>
-
-            <div class="offline">
-                ⚫ Hors ligne
-            </div>
-
-        <% } %>
+        <% }) %>
 
     </div>
 
 </div>
-
-<div class="info">
-
-    <p>
-        <strong>Email :</strong>
-        <%= membre.email %>
-    </p>
-
-    <p>
-        <strong>Téléphone :</strong>
-        <%= membre.telephone %>
-    </p>
-
-    <p>
-        <strong>Profession :</strong>
-        <%= membre.profession %>
-    </p>
-
-    <p>
-        <strong>Branche :</strong>
-        <%= membre.branche %>
-    </p>
-
-    <p>
-        <%= membre.description %>
-    </p>
-
-</div>
-
-<div class="actions">
-
-    <!-- 💬 CHAT INTERNE -->
-    <a class="btn-chat"
-       href="/chat/<%= membre.username %>">
-
-        💬 Discuter
-
-    </a>
-
-    <!-- 📲 WHATSAPP -->
-    <% if(membre.telephone){ %>
-
-    <a class="btn-wa"
-       target="_blank"
-       href="https://wa.me/<%= membre.telephone.replace(/[^0-9]/g,'') %>">
-
-        📲 WhatsApp
-
-    </a>
-
-    <% } %>
-
-</div>
-
-
-</div>
-
-<% }) %>
-
-</div>
-
-</div>
-
-<footer>
-    LA GRANDE FAMILLE KOUAME
-</footer>
-
-</body>
-</html>
 
 <footer>
     LA GRANDE FAMILLE KOUAME
