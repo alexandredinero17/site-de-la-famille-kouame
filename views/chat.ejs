@@ -1,401 +1,110 @@
-```html
 <!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Famille Chat</title>
-
-<link rel="stylesheet"
-href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<title>Chat</title>
 
 <style>
 
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-}
-
 body{
-    font-family:Arial,sans-serif;
-    background:#111b21;
-    height:100vh;
-    overflow:hidden;
+    background:#0b141a;
+    color:white;
+    font-family:Arial;
+    margin:0;
 }
 
-/* HEADER */
-
-.chat-header{
-    position:fixed;
-    top:0;
-    left:0;
-    right:0;
-    height:70px;
+.header{
     background:#202c33;
+    padding:15px;
     display:flex;
     align-items:center;
-    justify-content:space-between;
-    padding:0 15px;
-    z-index:999;
+    gap:15px;
 }
 
-.header-left{
-    display:flex;
-    align-items:center;
-    gap:12px;
-}
-
-.back-btn{
-    color:#aebac1;
-    font-size:20px;
-    text-decoration:none;
-}
-
-.header-left img{
-    width:45px;
-    height:45px;
+.avatar{
+    width:50px;
+    height:50px;
     border-radius:50%;
     object-fit:cover;
 }
 
-.user-info h3{
-    color:white;
-    font-size:16px;
+.messages{
+    height:70vh;
+    padding:20px;
 }
 
-.user-info span{
-    color:#8696a0;
-    font-size:12px;
-}
-
-.header-icons{
-    display:flex;
-    gap:20px;
-}
-
-.header-icons i{
-    color:#aebac1;
-    cursor:pointer;
-}
-
-/* CHAT BOX */
-
-#chat-box{
-    position:fixed;
-    top:70px;
-    bottom:75px;
-    left:0;
-    right:0;
-
-    overflow-y:auto;
-
-    padding:20px 12px;
-
-    display:flex;
-    flex-direction:column;
-
-    gap:10px;
-
-    background:#0b141a;
-
-    background-image:
-    url("https://i.imgur.com/3QZQZ9o.png");
-
-    background-size:cover;
-}
-
-/* MESSAGE */
-
-.msg{
-    max-width:75%;
-    padding:8px 10px;
-    border-radius:10px;
-    word-wrap:break-word;
-    animation:fade .2s ease;
-}
-
-.me{
-    align-self:flex-end;
-    background:#005c4b;
-    border-top-right-radius:0;
-}
-
-.other{
-    align-self:flex-start;
-    background:#202c33;
-    border-top-left-radius:0;
-}
-
-.username{
-    display:block;
-    font-size:12px;
-    color:#53bdeb;
-    margin-bottom:4px;
-    font-weight:bold;
-}
-
-.text{
-    color:white;
-    font-size:15px;
-}
-
-.time{
-    display:flex;
-    justify-content:flex-end;
-    gap:5px;
-    margin-top:4px;
-    font-size:11px;
-    color:#c7d0d5;
-}
-
-.seen{
-    color:#53bdeb;
-}
-
-/* INPUT */
-
-.chat-input{
+.form{
     position:fixed;
     bottom:0;
-    left:0;
-    right:0;
-    height:75px;
+    width:100%;
     background:#202c33;
+    padding:15px;
     display:flex;
-    align-items:center;
     gap:10px;
-    padding:10px;
 }
 
-.chat-input input{
+input{
     flex:1;
-    height:45px;
+    padding:12px;
     border:none;
-    outline:none;
     border-radius:30px;
-    padding:0 20px;
-    background:#2a3942;
-    color:white;
-    font-size:15px;
+    outline:none;
 }
 
-.chat-input input::placeholder{
-    color:#8696a0;
-}
-
-.send-btn{
-    width:45px;
-    height:45px;
-    border:none;
-    border-radius:50%;
+button{
     background:#00a884;
     color:white;
+    border:none;
+    padding:12px 20px;
+    border-radius:30px;
     cursor:pointer;
-}
-
-/* TYPING */
-
-#typing{
-    padding:5px 15px;
-    color:#53bdeb;
-    font-size:13px;
-}
-
-/* ANIMATION */
-
-@keyframes fade{
-    from{
-        opacity:0;
-        transform:translateY(10px);
-    }
-    to{
-        opacity:1;
-        transform:translateY(0);
-    }
 }
 
 </style>
-</head>
 
+</head>
 <body>
 
-<div class="chat-header">
+<div class="header">
 
-    <div class="header-left">
+    <img class="avatar"
+         src="<%= membre.photo %>">
 
-        <a href="/conversations" class="back-btn">
-            <i class="fa-solid fa-arrow-left"></i>
-        </a>
+    <div>
 
-        <img src="<%= otherUser.photo || '/images/default.png' %>">
+        <h3>
+            <%= membre.nom %>
+        </h3>
 
-        <div class="user-info">
-
-            <h3>
-                <%= otherUser.nom %>
-            </h3>
-
-            <span id="status">
-                Hors ligne
-            </span>
-
-        </div>
-
-    </div>
-
-    <div class="header-icons">
-
-        <i class="fa-solid fa-video"></i>
-
-        <i class="fa-solid fa-phone"></i>
-
-        <i class="fa-solid fa-ellipsis-vertical"></i>
-
-    </div>
-
-</div>
-
-<!-- CHAT -->
-
-<div id="chat-box">
-
-<% messages.forEach(m => { %>
-
-<div class="msg <%= m.sender_username === user.username ? 'me' : 'other' %>">
-
-    <span class="username">
-        @<%= m.sender_username %>
-    </span>
-
-    <div class="text">
-        <%= m.message %>
-    </div>
-
-    <div class="time">
-
-        <span>
-            <%= new Date(m.created_at).toLocaleTimeString([], {
-                hour:'2-digit',
-                minute:'2-digit'
-            }) %>
-        </span>
-
-        <% if(m.sender_username === user.username){ %>
-
-            <span class="seen">✓✓</span>
-
+        <% if(membre.online){ %>
+            <small style="color:#25D366;">En ligne</small>
+        <% } else { %>
+            <small style="color:gray;">Hors ligne</small>
         <% } %>
 
     </div>
 
 </div>
 
-<% }) %>
+<div class="messages">
+
+    <p>
+        Conversation avec <%= membre.nom %>
+    </p>
 
 </div>
 
-<div id="typing"></div>
-
-<!-- INPUT -->
-
-<div class="chat-input">
+<form class="form">
 
     <input
         type="text"
-        id="msg"
-        placeholder="Écrire un message..."
-        autocomplete="off"
-    >
+        placeholder="Votre message...">
 
-    <button class="send-btn" onclick="sendMessage()">
-        <i class="fa-solid fa-paper-plane"></i>
+    <button>
+        Envoyer
     </button>
 
-</div>
-
-<script src="/socket.io/socket.io.js"></script>
-
-<script>
-
-const roomId = Number("<%= roomId %>");
-
-const input = document.getElementById("msg");
-
-const socket = io();
-
-socket.emit("join", roomId);
-
-// ENVOYER MESSAGE
-function sendMessage(){
-
-    const msg = input.value.trim();
-
-    if(!msg) return;
-
-    socket.emit("message", {
-
-        conversationId: roomId,
-
-        sender_username: "<%= user.user_name %>",
-
-        message: msg
-    });
-
-    input.value = "";
-}
-
-// TOUCHE ENTER
-input.addEventListener("keypress", function(e){
-
-    if(e.key === "Enter"){
-
-        sendMessage();
-    }
-});
-
-// RECEVOIR MESSAGE
-socket.on("message", (data) => {
-
-    const div = document.createElement("div");
-
-    div.classList.add("msg");
-
-    if(data.sender_username === "<%= user.user_name %>"){
-
-        div.classList.add("me");
-
-    }else{
-
-        div.classList.add("other");
-    }
-
-    div.innerHTML = `
-
-        <span class="username">
-            @${data.sender_username}
-        </span>
-
-        <div class="text">
-            ${data.message}
-        </div>
-
-        <div class="time">
-            ✓✓
-        </div>
-    `;
-
-    const chatBox = document.getElementById("chat-box");
-
-    chatBox.appendChild(div);
-
-    chatBox.scrollTop = chatBox.scrollHeight;
-});
-
-</script>
-
+</form>
 
 </body>
 </html>
-

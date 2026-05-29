@@ -1,3 +1,134 @@
+<style>
+
+body{
+    margin:0;
+    font-family:Arial, sans-serif;
+    background:#0b141a;
+    color:white;
+}
+
+.container{
+    display:flex;
+    height:100vh;
+}
+
+.sidebar{
+    width:380px;
+    background:#111b21;
+    border-right:1px solid #222;
+    display:flex;
+    flex-direction:column;
+}
+
+.sidebar-header{
+    padding:20px;
+    background:#202c33;
+    border-bottom:1px solid #2f3b43;
+}
+
+.sidebar-header h2{
+    margin:0;
+    font-size:22px;
+}
+
+.chat-list{
+    overflow-y:auto;
+    flex:1;
+}
+
+.chat-list a{
+    text-decoration:none;
+    color:white;
+}
+
+.chat-item{
+    display:flex;
+    align-items:center;
+    gap:15px;
+    padding:15px;
+    transition:0.3s;
+    border-bottom:1px solid rgba(255,255,255,0.05);
+    cursor:pointer;
+}
+
+.chat-item:hover{
+    background:#202c33;
+}
+
+.avatar img{
+    width:55px;
+    height:55px;
+    border-radius:50%;
+    object-fit:cover;
+    border:2px solid #00a884;
+}
+
+.chat-info{
+    flex:1;
+    overflow:hidden;
+}
+
+.chat-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.chat-name{
+    font-size:16px;
+    font-weight:bold;
+    color:white;
+}
+
+.last-message{
+    margin-top:5px;
+    font-size:14px;
+    color:#aaa;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+
+.chat-time{
+    font-size:12px;
+    color:#00a884;
+}
+
+.online{
+    color:#25D366;
+    font-size:12px;
+    margin-top:4px;
+}
+
+.offline{
+    color:#888;
+    font-size:12px;
+    margin-top:4px;
+}
+
+.empty{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:28px;
+    color:#888;
+    background:#0b141a;
+}
+
+::-webkit-scrollbar{
+    width:6px;
+}
+
+::-webkit-scrollbar-thumb{
+    background:#2a3942;
+    border-radius:10px;
+}
+
+</style>
+
+
+
 <div class="container">
 
     <div class="sidebar">
@@ -15,16 +146,42 @@
                     <div class="chat-item">
 
                         <div class="avatar">
-                            <img src="<%= conv.other.photo %>" width="50" height="50" style="border-radius:50%">
+
+                            <img src="<%= conv.other.photo || '/images/default.png' %>">
+
                         </div>
 
                         <div class="chat-info">
 
                             <div class="chat-top">
+
                                 <div class="chat-name">
                                     <%= conv.other.nom %>
                                 </div>
+
+                                <div class="chat-time">
+                                    Maintenant
+                                </div>
+
                             </div>
+
+                            <div class="last-message">
+                                Cliquez pour discuter...
+                            </div>
+
+                            <% if(conv.other.online){ %>
+
+                                <div class="online">
+                                    ● En ligne
+                                </div>
+
+                            <% } else { %>
+
+                                <div class="offline">
+                                    ● Hors ligne
+                                </div>
+
+                            <% } %>
 
                         </div>
 

@@ -261,61 +261,38 @@ app.get('/conversations', async (req, res) => {
 
 // ================= CHAT PRIVÉ =================
 
-app.get('/chat/:username', async (req, res) => {
+app.get('/chat/:username', (req, res) => {
 
-    if (!req.session.user) return res.redirect('/login');
-
-    const me = req.session.user;
-
-    const other = await db.query(
-        "SELECT * FROM users WHERE user_name=$1",
-        [req.params.username]
-    );
-
-    if (other.rows.length === 0) {
-        return res.send("Utilisateur introuvable");
+    if (!req.session.user) {
+        return res.redirect('/login');
     }
 
-    const otherUser = other.rows[0];
+    const username = req.params.username;
 
-    // chercher conversation existante
-    let conv = await db.query(`
-        SELECT c.id
-        FROM conversations c
-        JOIN conversation_users cu1 ON cu1.conversation_id = c.id
-        JOIN conversation_users cu2 ON cu2.conversation_id = c.id
-        WHERE cu1.user_id = $1 AND cu2.user_id = $2
-        LIMIT 1
-    `, [me.id, otherUser.id]);
+    db.query(
+        "SELECT * FROM users WHERE username = $1",
+        [username],
+        (err, result) => {
 
-    let conversationId;
+            if (err) {
+                console.log(err);
+                return res.send("Erreur serveur");
+            }
 
-    if (conv.rows.length > 0) {
-        conversationId = conv.rows[0].id;
-    } else {
-        const newConv = await db.query(
-            "INSERT INTO conversations DEFAULT VALUES RETURNING id"
-        );
+            if (result.rows.length === 0) {
+                return res.send("Utilisateur introuvable");
+            }
 
-        conversationId = newConv.rows[0].id;
+            const membre = result.rows[0];
 
-        await db.query(
-            "INSERT INTO conversation_users (conversation_id, user_id) VALUES ($1,$2),($1,$3)",
-            [conversationId, me.id, otherUser.id]
-        );
-    }
+            res.render('chat', {
+                membre,
+                user: req.session.user
+            });
 
-    const messages = await db.query(
-        "SELECT * FROM messages WHERE conversation_id=$1 ORDER BY id ASC",
-        [conversationId]
+        }
     );
 
-    res.render("chat", {
-        roomId: conversationId,
-        messages: messages.rows,
-        user: me,
-        otherUser
-    });
 });
 // ================= HOME =================
 app.get('/', (req, res) => {
