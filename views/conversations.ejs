@@ -139,58 +139,37 @@ body{
 
         <div class="chat-list">
 
-            <% conversations.forEach(conv => { %>
+          <% conversations.forEach(conv => { %>
 
-                <a href="/chat/<%= conv.other.username %>">
+    <% if(conv.other.username !== user.username){ %>
 
-                    <div class="chat-item">
+        <a href="/chat/<%= conv.other.username %>">
 
-                        <div class="avatar">
+            <div class="chat-item">
 
-                            <img src="<%= conv.other.photo || '/images/default.png' %>">
+                <div class="avatar">
+                    <img src="<%= conv.other.photo || '/images/default.png' %>">
+                </div>
 
-                        </div>
+                <div class="chat-info">
 
-                        <div class="chat-info">
+                    <div class="chat-top">
 
-                            <div class="chat-top">
-
-                                <div class="chat-name">
-                                    <%= conv.other.nom %>
-                                </div>
-
-                                <div class="chat-time">
-                                    Maintenant
-                                </div>
-
-                            </div>
-
-                            <div class="last-message">
-                                Cliquez pour discuter...
-                            </div>
-
-                            <% if(conv.other.online){ %>
-
-                                <div class="online">
-                                    ● En ligne
-                                </div>
-
-                            <% } else { %>
-
-                                <div class="offline">
-                                    ● Hors ligne
-                                </div>
-
-                            <% } %>
-
+                        <div class="chat-name">
+                            <%= conv.other.nom %>
                         </div>
 
                     </div>
 
-                </a>
+                </div>
 
-            <% }) %>
+            </div>
 
+        </a>
+
+    <% } %>
+
+<% }) %>
         </div>
 
     </div>

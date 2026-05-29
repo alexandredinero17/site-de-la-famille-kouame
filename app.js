@@ -673,6 +673,9 @@ app.get('/chat/:username', async (req, res) => {
 
         // username cible
         const username = req.params.username;
+        if(username === req.session.user.username){
+    return res.redirect('/messages');
+}
 
         // chercher utilisateur
         const userResult = await db.query(
