@@ -485,68 +485,67 @@ app.get('/conversations', async (req, res) => {
 
 // ================= CHAT =================
 // ================= CREATE / OPEN CHAT =================
+// ================= PRIVATE CHAT =================
 app.get('/chat/:username', async (req, res) => {
 
     try {
 
-        // utilisateur connecté obligatoire
+        // utilisateur connecté
         if (!req.session.user) {
             return res.redirect('/login');
         }
 
-        // utilisateur connecté
         const me = req.session.user;
 
-        // username dans URL
+        // username cible
         const username = req.params.username;
 
-        // rechercher utilisateur cible
+        // chercher utilisateur
         const userResult = await db.query(
             `
             SELECT *
             FROM users
-            WHERE username = $1
+            WHERE username=$1
             LIMIT 1
             `,
             [username]
         );
 
-        // utilisateur introuvable
+        // utilisateur inexistant
         if (userResult.rows.length === 0) {
 
-            return res.status(404).send(
+            return res.send(
                 "Utilisateur introuvable"
             );
         }
 
-        // utilisateur cible
         const other = userResult.rows[0];
 
-        // empêcher discussion avec soi-même
+        // empêcher chat avec soi-même
         if (other.id === me.id) {
 
             return res.redirect('/membres');
         }
 
-        // vérifier conversation existante
-        let conversation = await db.query(
+        // chercher conversation existante
+        let conv = await db.query(
             `
             SELECT *
             FROM conversations
 
             WHERE
             (
-                user1 = $1
+                user1=$1
                 AND
-                user2 = $2
+                user2=$2
             )
 
             OR
 
             (
-                user1 = $2
+                user1=$2
                 AND
-                user2 = $1
+                user2=$1
             )
 
             LIMIT 1
@@ -556,14 +555,14 @@ app.get('/chat/:username', async (req, res) => {
 
         let conversationId;
 
-        // conversation déjà existante
-        if (conversation.rows.length > 0) {
+        // conversation existe déjà
+        if (conv.rows.length > 0) {
 
-            conversationId = conversation.rows[0].id;
+            conversationId = conv.rows[0].id;
 
         } else {
 
-            // créer nouvelle conversation
+            // créer nouvelle conversation privée
             const created = await db.query(
                 `
                 INSERT INTO conversations
@@ -583,20 +582,20 @@ app.get('/chat/:username', async (req, res) => {
             conversationId = created.rows[0].id;
         }
 
-        // récupérer messages
+        // récupérer uniquement messages privés
         const messages = await db.query(
             `
             SELECT *
             FROM messages
 
-            WHERE conversation_id = $1
+            WHERE conversation_id=$1
 
             ORDER BY id ASC
             `,
             [conversationId]
         );
 
-        // ouvrir chat
+        // ouvrir chat privé
         res.render('chat', {
 
             roomId: conversationId,
@@ -610,10 +609,10 @@ app.get('/chat/:username', async (req, res) => {
 
     } catch (err) {
 
-        console.log("CHAT ERROR:", err);
+        console.log("PRIVATE CHAT ERROR:", err);
 
         res.status(500).send(
-            "Erreur chat serveur"
+            "Erreur chat privé"
         );
     }
 });
