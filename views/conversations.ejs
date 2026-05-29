@@ -137,29 +137,46 @@ body{
             <h2>💬 Discussions</h2>
         </div>
 
-        <div class="chat-list">
+       <div class="chat-list">
 
-          <% conversations.forEach(conv => { %>
-
-    <% if(conv.other.username !== user.username){ %>
+    <% conversations.forEach(conv => { %>
 
         <a href="/chat/<%= conv.other.username %>">
 
             <div class="chat-item">
 
                 <div class="avatar">
-                    <img src="<%= conv.other.photo || '/images/default.png' %>">
+
+                    <img
+                        src="<%= conv.other.photo || '/images/default.png' %>"
+                        width="50"
+                        height="50"
+                        style="border-radius:50%"
+                    >
+
                 </div>
 
                 <div class="chat-info">
 
-                    <div class="chat-top">
+                    <div class="chat-name">
 
-                        <div class="chat-name">
-                            <%= conv.other.nom %>
-                        </div>
+                        <%= conv.other.nom %>
 
                     </div>
+
+                    <% if(conv.other.online){ %>
+
+                        <small style="color:#25D366">
+                            En ligne
+                        </small>
+
+                    <% } else { %>
+
+                        <small style="color:gray">
+                            Hors ligne
+                        </small>
+
+                    <% } %>
 
                 </div>
 
@@ -167,12 +184,9 @@ body{
 
         </a>
 
-    <% } %>
+    <% }) %>
 
-<% }) %>
-        </div>
-
-    </div>
+</div>
 
     <div class="empty">
         👈 Sélectionne une conversation

@@ -206,64 +206,84 @@ fileFilter: (req, file, cb) => {
 // ================= ADMIN =================
 
 // ================= CONVERSATIONS =================
-
-app.get('/conversations', async (req, res) => {
+app.get('/messages', async (req, res) => {
 
     try {
 
-        if (!req.session.user) return res.redirect('/login');
+        if (!req.session.user) {
 
-        const myId = req.session.user.id;
+            return res.redirect('/login');
 
-        const result = await db.query(`
+        }
+
+        const currentUserId = req.session.user.id;
+
+        const result = await db.query(
+
+            `
             SELECT
-                c.id,
-                u1.id AS u1_id,
-                u2.id AS u2_id,
-                u1.username AS u1_username,
-                u2.username AS u2_username,
-                u1.nom AS u1_nom,
-                u2.nom AS u2_nom,
-                u1.photo AS u1_photo,
-                u2.photo AS u2_photo
+
+                c.id AS conversation_id,
+
+                u.id AS other_id,
+                u.nom,
+                u.username,
+                u.photo,
+                u.online
+
             FROM conversations c
-            JOIN users u1 ON c.user1 = u1.id
-            JOIN users u2 ON c.user2 = u2.id
-            WHERE c.user1=$1 OR c.user2=$1
-            ORDER BY c.created_at DESC
-        `, [myId]);
 
-        const convs = result.rows.map(c => {
+            INNER JOIN conversation_users cu1
+                ON cu1.conversation_id = c.id
 
-            const isMeUser1 = c.u1_id === myId;
+            INNER JOIN conversation_users cu2
+                ON cu2.conversation_id = c.id
 
-            return {
-                id: c.id,
-                other: isMeUser1 ? {
-                    id: c.u2_id,
-                    username: c.u2_username,
-                    nom: c.u2_nom,
-                    photo: c.u2_photo
-                } : {
-                    id: c.u1_id,
-                    username: c.u1_username,
-                    nom: c.u1_nom,
-                    photo: c.u1_photo
-                }
-            };
-        });
+            INNER JOIN users u
+                ON u.id = cu2.user_id
 
-        res.render("conversations", {
-            conversations: convs,
+            WHERE cu1.user_id = $1
+            AND cu2.user_id != $1
+
+            ORDER BY c.id DESC
+            `,
+
+            [currentUserId]
+
+        );
+
+        const conversations = result.rows.map(row => ({
+
+            id: row.conversation_id,
+
+            other: {
+
+                id: row.other_id,
+                nom: row.nom,
+                username: row.username,
+                photo: row.photo,
+                online: row.online
+
+            }
+
+        }));
+
+        res.render('conversations', {
+
+            conversations,
             user: req.session.user
+
         });
 
     } catch (err) {
-        console.log(err);
-        res.status(500).send("Erreur conversations");
-    }
-});
 
+        console.log("ERREUR CONVERSATIONS :", err);
+
+        res.send("Erreur conversations");
+
+    }
+
+});
 // ================= CHAT PRIVÉ =================
 
 app.get('/chat/:username', async (req, res) => {
