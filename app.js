@@ -231,7 +231,7 @@ app.post('/register', upload.single('photo'), async (req, res) => {
 
     try {
 
-        const { nom, user_name, email, telephone, profession, branche, description, password } = req.body;
+        const { nom, username, email, telephone, profession, branche, description, password } = req.body;
 
         // 🔒 validation minimale
         if (!nom || !email || !password) {
@@ -261,11 +261,11 @@ app.post('/register', upload.single('photo'), async (req, res) => {
         // 💾 insert user
         await db.query(
             `INSERT INTO users 
-            (nom, user_name, email, telephone, profession, branche, description, password, photo)
+            (nom, username, email, telephone, profession, branche, description, password, photo)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
             [
                 nom,
-                user_name,
+                username,
                 email,
                 telephone || null,
                 profession || null,
@@ -346,7 +346,7 @@ app.post("/upload-image", upload.single("image"), async (req, res) => {
         const image = "/uploads/" + req.file.filename;
 
         await db.query(
-            `INSERT INTO galerie (user_name, image, description)
+            `INSERT INTO galerie (username, image, description)
              VALUES ($1,$2,$3)`,
             [
                 req.session.user.nom,
@@ -483,8 +483,7 @@ app.get('/conversations', async (req, res) => {
     }
 });
 
-// ================= CHAT =================
-// ================= CREATE / OPEN CHAT =================
+
 // ================= PRIVATE CHAT =================
 app.get('/chat/:username', async (req, res) => {
 
