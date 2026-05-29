@@ -25,58 +25,67 @@ const io = new Server(server);
 
 io.on('connection', (socket) => {
 
-    console.log("Utilisateur connecté");
+    console.log('Utilisateur connecté');
 
-    socket.on('join', (room) => {
-        socket.join(room);
+    // rejoindre une conversation
+    socket.on('join_conversation', (conversationId) => {
+
+        socket.join('conv_' + conversationId);
+
     });
 
-    // MESSAGE LIVE
-    socket.on("message", async (data) => {
+    // envoyer message
+    socket.on('send_message', async (data) => {
 
-        try{
+        try {
 
             const {
-                conversationId,
-                sender_username,
+                conversation_id,
+                sender_id,
                 message
             } = data;
 
-            if(!conversationId || !message){
-                return;
-            }
-
-            // SAUVEGARDE DB
+            // sauvegarde message
             const result = await db.query(
-
-                `INSERT INTO messages
-                (conversation_id, sender_username, message)
+                `
+                INSERT INTO messages
+                (
+                    conversation_id,
+                    sender_id,
+                    message
+                )
                 VALUES ($1,$2,$3)
-                RETURNING *`,
-
+                RETURNING *
+                `,
                 [
-                    conversationId,
-                    sender_username,
+                    conversation_id,
+                    sender_id,
                     message
                 ]
             );
 
-            // ENVOI LIVE
-            io.to(String(conversationId))
-            .emit("message", result.rows[0]);
+            const newMessage = result.rows[0];
 
-        }catch(err){
+            // envoyer à toute la room
+            io.to('conv_' + conversation_id)
+            .emit('receive_message', {
 
-            console.log("SOCKET ERROR :", err);
+                id: newMessage.id,
+                message: newMessage.message,
+                sender_id,
+                created_at: newMessage.created_at
+
+            });
+
+        } catch(err){
+
+            console.log(err);
+
         }
+
     });
 
-    socket.on("disconnect", () => {
-
-        console.log("Utilisateur déconnecté");
-    });
 });
-
 
 
 
@@ -592,149 +601,223 @@ app.get('/events', (req, res) => {
 });
 
 // ================= MESSAGES =================
-// ================= CONVERSATIONS =================
-app.get('/conversations', async (req, res) => {
+app.get('/messages', async (req, res) => {
+
+    if(!req.session.user){
+
+        return res.redirect('/login');
+
+    }
 
     try {
 
-        if (!req.session.user) {
-            return res.redirect('/login');
-        }
-
-        const myId = req.session.user.id;
-
         const result = await db.query(
+
             `
             SELECT
+                c.id AS conversation_id,
+                u.id,
+                u.nom,
+                u.username,
+                u.photo,
+                u.online
 
-                conversations.id,
+            FROM conversations c
 
-                u1.id AS user1_id,
-                u1.nom AS user1_nom,
-                u1.username AS user1_username,
-                u1.photo AS user1_photo,
+            JOIN conversation_users cu1
+            ON cu1.conversation_id = c.id
 
-                u2.id AS user2_id,
-                u2.nom AS user2_nom,
-                u2.username AS user2_username,
-                u2.photo AS user2_photo
+            JOIN conversation_users cu2
+            ON cu2.conversation_id = c.id
 
-            FROM conversations
+            JOIN users u
+            ON u.id = cu2.user_id
 
-            JOIN users u1
-            ON conversations.user1 = u1.id
-
-            JOIN users u2
-            ON conversations.user2 = u2.id
-
-            WHERE
-            conversations.user1 = $1
-            OR
-            conversations.user2 = $1
-
-            ORDER BY conversations.created_at DESC
+            WHERE cu1.user_id = $1
+            AND cu2.user_id != $1
             `,
-            [myId]
+
+            [req.session.user.id]
+
         );
 
-        // construire vrai interlocuteur
-        const conversations = result.rows.map(conv => {
+        const conversations = result.rows.map(row => ({
 
-            let otherUser;
+            id: row.conversation_id,
 
-            if (conv.user1_id === myId) {
+            other: {
 
-                otherUser = {
-                    id: conv.user2_id,
-                    nom: conv.user2_nom,
-                    username: conv.user2_username,
-                    photo: conv.user2_photo
-                };
+                id: row.id,
+                nom: row.nom,
+                username: row.username,
+                photo: row.photo,
+                online: row.online
 
-            } else {
-
-                otherUser = {
-                    id: conv.user1_id,
-                    nom: conv.user1_nom,
-                    username: conv.user1_username,
-                    photo: conv.user1_photo
-                };
             }
 
-            return {
-                id: conv.id,
-                otherUser
-            };
-        });
+        }));
 
-        res.render('conversations', {
+        res.render('messages', {
+
             conversations,
             user: req.session.user
+
         });
 
-    } catch (err) {
+    } catch(err){
 
-        console.log("CONVERSATIONS ERROR:", err);
+        console.log(err);
 
-        res.status(500).send("Erreur conversations");
+        res.send("Erreur conversations");
+
     }
+
 });
+
+// ================= CONVERSATIONS =================
 // ================= PRIVATE CHAT =================
-app.get('/chat/:username', (req, res) => {
+app.get('/chat/:username', async (req, res) => {
 
-    // Vérifie connexion
-    if (!req.session.user) {
+    if(!req.session.user){
+
         return res.redirect('/login');
+
     }
 
-    const username = req.params.username;
+    try {
 
-    console.log("USERNAME REÇU :", username);
+        const username = req.params.username;
 
-    // Empêche chat avec soi-même
-    if (
-        username.toLowerCase() ===
-        req.session.user.username.toLowerCase()
-    ) {
-        return res.redirect('/membres');
-    }
+        // utilisateur
+        const userResult = await db.query(
 
-    // Recherche utilisateur
-    const sql = `
-        SELECT *
-        FROM users
-        WHERE LOWER(username) = LOWER($1)
-        LIMIT 1
-    `;
+            `
+            SELECT *
+            FROM users
+            WHERE username = $1
+            LIMIT 1
+            `,
 
-    db.query(sql, [username], (err, result) => {
+            [username]
 
-        if (err) {
+        );
 
-            console.log("ERREUR SQL :", err);
-
-            return res.send("Erreur serveur");
-        }
-
-        console.log("RESULTAT :", result.rows);
-
-        // Utilisateur introuvable
-        if (result.rows.length === 0) {
+        if(userResult.rows.length === 0){
 
             return res.send("Utilisateur introuvable");
+
         }
 
-        // Utilisateur trouvé
-        const membre = result.rows[0];
+        const membre = userResult.rows[0];
+
+        // empêcher chat avec soi-même
+        if(membre.id === req.session.user.id){
+
+            return res.redirect('/membres');
+
+        }
+
+        // conversation existante ?
+        let convResult = await db.query(
+
+            `
+            SELECT c.id
+
+            FROM conversations c
+
+            JOIN conversation_users cu1
+            ON cu1.conversation_id = c.id
+
+            JOIN conversation_users cu2
+            ON cu2.conversation_id = c.id
+
+            WHERE cu1.user_id = $1
+            AND cu2.user_id = $2
+
+            LIMIT 1
+            `,
+
+            [
+                req.session.user.id,
+                membre.id
+            ]
+
+        );
+
+        let conversationId;
+
+        // créer conversation
+        if(convResult.rows.length === 0){
+
+            const newConv = await db.query(
+
+                `
+                INSERT INTO conversations
+                DEFAULT VALUES
+                RETURNING id
+                `
+            );
+
+            conversationId = newConv.rows[0].id;
+
+            await db.query(
+
+                `
+                INSERT INTO conversation_users
+                (
+                    conversation_id,
+                    user_id
+                )
+                VALUES ($1,$2),($1,$3)
+                `,
+
+                [
+                    conversationId,
+                    req.session.user.id,
+                    membre.id
+                ]
+
+            );
+
+        } else {
+
+            conversationId = convResult.rows[0].id;
+
+        }
+
+        // récupérer messages
+        const messagesResult = await db.query(
+
+            `
+            SELECT *
+            FROM messages
+            WHERE conversation_id = $1
+            ORDER BY created_at ASC
+            `,
+
+            [conversationId]
+
+        );
 
         res.render('chat', {
+
             membre,
-            user: req.session.user
+            user: req.session.user,
+            conversationId,
+            messages: messagesResult.rows
+
         });
 
-    });
+    } catch(err){
+
+        console.log(err);
+
+        res.send("Erreur chat");
+
+    }
 
 });
+
 // ================= ADMIN MIDDLEWARE =================
 
 function isAdmin(req, res, next){
@@ -1038,4 +1121,6 @@ app.post(
 
 // ================= START SERVER =================
 const PORT = process.env.PORT || 10000;
-server.listen(PORT, () => console.log("Serveur lancé"));
+server.listen(3000, () => {
+    console.log("Serveur démarré");
+});
