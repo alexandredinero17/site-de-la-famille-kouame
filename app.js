@@ -145,90 +145,71 @@ function isAdmin(req, res, next) {
 }
 
 // ================= SOCKET.IO =================
-const onlineUsers = new Map();
+const socket = io();
 
+const roomId = Number("<%= roomId %>");
+const input = document.getElementById("msg");
+
+socket.emit("join", roomId);
+
+function sendMessage(){
+
+    const msg = input.value.trim();
+    if(!msg) return;
+
+    socket.emit("message", {
+        conversationId: roomId,
+        sender_username: "<%= user.user_name %>",
+        message: msg
+    });
+
+    input.value = "";
+}
+socket.on("message", (data) => {
+
+    const div = document.createElement("div");
+
+    div.classList.add("msg");
+
+    if(data.sender_username === "<%= user.user_name %>"){
+        div.classList.add("me");
+    } else {
+        div.classList.add("other");
+    }
+
+    div.innerHTML = `
+        <span class="username">@${data.sender_username}</span>
+        <div class="text">${data.message}</div>
+        <div class="time">✓</div>
+    `;
+
+    document.getElementById("chat-box").appendChild(div);
+
+    document.getElementById("chat-box").scrollTop =
+        document.getElementById("chat-box").scrollHeight;
+});
 io.on("connection", (socket) => {
 
-    // 🟢 ONLINE
-    socket.on("user_online", async (userId) => {
+    socket.on("join", (roomId) => {
+        socket.join(String(roomId));
+    });
 
-        onlineUsers.set(userId, socket.id);
+    socket.on("message", async (data) => {
 
-        await db.query(
-            "UPDATE users SET online=true WHERE id=$1",
-            [userId]
+        const { conversationId, sender_username, message } = data;
+
+        if (!conversationId || !message) return;
+
+        const result = await db.query(
+            `INSERT INTO messages (conversation_id, sender_username, message)
+             VALUES ($1,$2,$3)
+             RETURNING *`,
+            [conversationId, sender_username, message]
         );
 
-        io.emit("update_status", { userId, online: true });
-    });
-
-    // 📩 JOIN CHAT
-    socket.on("join_chat", (conversationId) => {
-        socket.join(String(conversationId));
-    });
-
-    // 💬 SEND MESSAGE
-    socket.on("send_message", async (data) => {
-
-        const { conversationId, senderId, message } = data;
-
-        const result = await db.query(`
-            INSERT INTO messages
-            (conversation_id, sender_id, message)
-            VALUES ($1,$2,$3)
-            RETURNING *
-        `, [conversationId, senderId, message]);
-
-        io.to(String(conversationId)).emit("new_message", result.rows[0]);
-    });
-
-    // 👀 MESSAGE SEEN
-    socket.on("message_seen", async ({ messageId, userId }) => {
-
-        await db.query(`
-            UPDATE messages
-            SET seen=true, seen_at=NOW()
-            WHERE id=$1
-        `, [messageId]);
-
-        io.emit("message_seen", { messageId });
-    });
-
-    // ⌨️ TYPING
-    socket.on("typing", ({ conversationId, userId, isTyping }) => {
-
-        socket.to(String(conversationId)).emit("typing", {
-            userId,
-            isTyping
-        });
-    });
-
-    // 🔴 OFFLINE
-    socket.on("disconnect", async () => {
-
-        for (let [userId, id] of onlineUsers.entries()) {
-
-            if (id === socket.id) {
-
-                onlineUsers.delete(userId);
-
-                await db.query(`
-                    UPDATE users
-                    SET online=false, last_seen=NOW()
-                    WHERE id=$1
-                `, [userId]);
-
-                io.emit("update_status", {
-                    userId,
-                    online: false
-                });
-
-                break;
-            }
-        }
+        io.to(String(conversationId)).emit("message", result.rows[0]);
     });
 });
-
 // ================= CONVERSATIONS =================
 
 app.get('/conversations', async (req, res) => {
@@ -292,69 +273,59 @@ app.get('/conversations', async (req, res) => {
 
 app.get('/chat/:username', async (req, res) => {
 
-    try {
+    if (!req.session.user) return res.redirect('/login');
 
-        if (!req.session.user) return res.redirect('/login');
+    const me = req.session.user;
 
-        const me = req.session.user;
+    const other = await db.query(
+        "SELECT * FROM users WHERE user_name=$1",
+        [req.params.username]
+    );
 
-        // 1. trouver receiver
-        const result = await db.query(
-            "SELECT * FROM users WHERE username=$1",
-            [req.params.username]
+    if (other.rows.length === 0) {
+        return res.send("Utilisateur introuvable");
+    }
+
+    const otherUser = other.rows[0];
+
+    // chercher conversation existante
+    let conv = await db.query(`
+        SELECT c.id
+        FROM conversations c
+        JOIN conversation_users cu1 ON cu1.conversation_id = c.id
+        JOIN conversation_users cu2 ON cu2.conversation_id = c.id
+        WHERE cu1.user_id = $1 AND cu2.user_id = $2
+        LIMIT 1
+    `, [me.id, otherUser.id]);
+
+    let conversationId;
+
+    if (conv.rows.length > 0) {
+        conversationId = conv.rows[0].id;
+    } else {
+        const newConv = await db.query(
+            "INSERT INTO conversations DEFAULT VALUES RETURNING id"
         );
 
-        if (result.rows.length === 0) {
-            return res.send("Utilisateur introuvable");
-        }
+        conversationId = newConv.rows[0].id;
 
-        const receiver = result.rows[0];
-
-        if (receiver.id === me.id) {
-            return res.redirect('/conversations');
-        }
-
-        // 2. récupérer ou créer conversation
-        let conv = await db.query(`
-            SELECT * FROM conversations
-            WHERE (user1=$1 AND user2=$2)
-            OR (user1=$2 AND user2=$1)
-            LIMIT 1
-        `, [me.id, receiver.id]);
-
-        let conversationId;
-
-        if (conv.rows.length > 0) {
-            conversationId = conv.rows[0].id;
-        } else {
-            const created = await db.query(`
-                INSERT INTO conversations (user1, user2)
-                VALUES ($1,$2)
-                RETURNING id
-            `, [me.id, receiver.id]);
-
-            conversationId = created.rows[0].id;
-        }
-
-        // 3. charger messages
-        const messages = await db.query(`
-            SELECT * FROM messages
-            WHERE conversation_id=$1
-            ORDER BY id ASC
-        `, [conversationId]);
-
-        // 4. render chat
-        res.render('chat', {
-            user: me,
-            receiver: receiver,
-            roomId: conversationId,
-            messages: messages.rows
-        });
-
-    } catch (err) {
-        console.log("CHAT ERROR:", err);
-        res.status(500).send("Erreur chat serveur");
+        await db.query(
+            "INSERT INTO conversation_users (conversation_id, user_id) VALUES ($1,$2),($1,$3)",
+            [conversationId, me.id, otherUser.id]
+        );
     }
+
+    const messages = await db.query(
+        "SELECT * FROM messages WHERE conversation_id=$1 ORDER BY id ASC",
+        [conversationId]
+    );
+
+    res.render("chat", {
+        roomId: conversationId,
+        messages: messages.rows,
+        user: me,
+        otherUser
+    });
 });
 // ================= HOME =================
 app.get('/', (req, res) => {

@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -18,33 +19,25 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 }
 
 body{
-    font-family:Arial, sans-serif;
+    font-family:Arial,sans-serif;
     background:#111b21;
     height:100vh;
     overflow:hidden;
 }
 
-/* ================= HEADER ================= */
+/* HEADER */
 
 .chat-header{
-
     position:fixed;
     top:0;
     left:0;
     right:0;
-
     height:70px;
-
     background:#202c33;
-
     display:flex;
     align-items:center;
     justify-content:space-between;
-
     padding:0 15px;
-
-    border-bottom:1px solid rgba(255,255,255,.05);
-
     z-index:999;
 }
 
@@ -55,17 +48,14 @@ body{
 }
 
 .back-btn{
-
     color:#aebac1;
     font-size:20px;
     text-decoration:none;
 }
 
 .header-left img{
-
     width:45px;
     height:45px;
-
     border-radius:50%;
     object-fit:cover;
 }
@@ -82,25 +72,20 @@ body{
 
 .header-icons{
     display:flex;
-    align-items:center;
     gap:20px;
 }
 
 .header-icons i{
     color:#aebac1;
-    font-size:18px;
     cursor:pointer;
 }
 
-/* ================= CHAT BOX ================= */
+/* CHAT BOX */
 
 #chat-box{
-
     position:fixed;
-
     top:70px;
     bottom:75px;
-
     left:0;
     right:0;
 
@@ -119,87 +104,49 @@ body{
     url("https://i.imgur.com/3QZQZ9o.png");
 
     background-size:cover;
-
-    scroll-behavior:smooth;
 }
 
-/* ================= MESSAGE ================= */
+/* MESSAGE */
 
 .msg{
-
     max-width:75%;
-
-    padding:8px 10px 6px 10px;
-
+    padding:8px 10px;
     border-radius:10px;
-
-    position:relative;
-
-    animation:fade .2s ease;
-
     word-wrap:break-word;
-
-    box-shadow:0 1px 1px rgba(0,0,0,.2);
+    animation:fade .2s ease;
 }
 
-/* MES MESSAGES */
-
 .me{
-
     align-self:flex-end;
-
     background:#005c4b;
-
     border-top-right-radius:0;
 }
 
-/* AUTRES */
-
 .other{
-
     align-self:flex-start;
-
     background:#202c33;
-
     border-top-left-radius:0;
 }
 
 .username{
-
     display:block;
-
     font-size:12px;
-
-    margin-bottom:4px;
-
-    font-weight:bold;
-
     color:#53bdeb;
+    margin-bottom:4px;
+    font-weight:bold;
 }
 
 .text{
-
     color:white;
-
     font-size:15px;
-
-    line-height:1.5;
 }
 
 .time{
-
     display:flex;
-
     justify-content:flex-end;
-
-    align-items:center;
-
     gap:5px;
-
     margin-top:4px;
-
     font-size:11px;
-
     color:#c7d0d5;
 }
 
@@ -207,54 +154,30 @@ body{
     color:#53bdeb;
 }
 
-/* ================= INPUT ================= */
+/* INPUT */
 
 .chat-input{
-
     position:fixed;
-
     bottom:0;
     left:0;
     right:0;
-
     height:75px;
-
     background:#202c33;
-
     display:flex;
     align-items:center;
-
     gap:10px;
-
     padding:10px;
 }
 
-.chat-input i{
-
-    color:#8696a0;
-
-    font-size:22px;
-
-    cursor:pointer;
-}
-
 .chat-input input{
-
     flex:1;
-
     height:45px;
-
     border:none;
     outline:none;
-
     border-radius:30px;
-
     padding:0 20px;
-
     background:#2a3942;
-
     color:white;
-
     font-size:15px;
 }
 
@@ -263,70 +186,33 @@ body{
 }
 
 .send-btn{
-
     width:45px;
     height:45px;
-
     border:none;
-
     border-radius:50%;
-
     background:#00a884;
-
     color:white;
-
-    font-size:18px;
-
     cursor:pointer;
-
-    transition:.2s;
 }
 
-.send-btn:hover{
-    transform:scale(1.05);
+/* TYPING */
+
+#typing{
+    padding:5px 15px;
+    color:#53bdeb;
+    font-size:13px;
 }
 
-/* ================= SCROLL ================= */
-
-#chat-box::-webkit-scrollbar{
-    width:5px;
-}
-
-#chat-box::-webkit-scrollbar-thumb{
-    background:#2a3942;
-    border-radius:10px;
-}
-
-/* ================= ANIMATION ================= */
+/* ANIMATION */
 
 @keyframes fade{
-
     from{
         opacity:0;
         transform:translateY(10px);
     }
-
     to{
         opacity:1;
         transform:translateY(0);
-    }
-}
-
-/* ================= MOBILE ================= */
-
-@media(max-width:700px){
-
-    .msg{
-        max-width:90%;
-    }
-
-    .header-icons{
-        gap:14px;
-    }
-
-    .header-left img{
-        width:40px;
-        height:40px;
     }
 }
 
@@ -334,8 +220,6 @@ body{
 </head>
 
 <body>
-
-<!-- ================= HEADER ================= -->
 
 <div class="chat-header">
 
@@ -353,8 +237,8 @@ body{
                 <%= otherUser.nom %>
             </h3>
 
-            <span>
-                @<%= otherUser.user_name %>
+            <span id="status">
+                Hors ligne
             </span>
 
         </div>
@@ -373,13 +257,13 @@ body{
 
 </div>
 
-<!-- ================= CHAT ================= -->
+<!-- CHAT -->
 
 <div id="chat-box">
 
 <% messages.forEach(m => { %>
 
-<div class="msg <%= m.sender_username === user.user_name ? 'me' : 'other' %>">
+<div class="msg <%= m.sender_username === user.username ? 'me' : 'other' %>">
 
     <span class="username">
         @<%= m.sender_username %>
@@ -392,19 +276,15 @@ body{
     <div class="time">
 
         <span>
-
             <%= new Date(m.created_at).toLocaleTimeString([], {
                 hour:'2-digit',
                 minute:'2-digit'
             }) %>
-
         </span>
 
-        <% if(m.sender_username === user.user_name){ %>
+        <% if(m.sender_username === user.username){ %>
 
-            <span class="seen">
-                ✓✓
-            </span>
+            <span class="seen">✓✓</span>
 
         <% } %>
 
@@ -416,13 +296,11 @@ body{
 
 </div>
 
-<!-- ================= INPUT ================= -->
+<div id="typing"></div>
+
+<!-- INPUT -->
 
 <div class="chat-input">
-
-    <i class="fa-regular fa-face-smile"></i>
-
-    <i class="fa-solid fa-paperclip"></i>
 
     <input
         type="text"
@@ -431,10 +309,7 @@ body{
         autocomplete="off"
     >
 
-    <button
-        class="send-btn"
-        onclick="sendMessage()"
-    >
+    <button class="send-btn" onclick="sendMessage()">
         <i class="fa-solid fa-paper-plane"></i>
     </button>
 
@@ -448,10 +323,17 @@ const socket = io();
 
 const roomId = Number("<%= roomId %>");
 
-socket.emit("join", roomId);
-socket.emit("user_online", "<%= user.id %>");
+const username = "<%= user.username %>";
+
+const input = document.getElementById("msg");
 
 const chatBox = document.getElementById("chat-box");
+
+socket.emit("join", roomId);
+
+socket.emit("user_online", username);
+
+/* AUTO SCROLL */
 
 function scrollBottom(){
 
@@ -460,23 +342,19 @@ function scrollBottom(){
 
 scrollBottom();
 
+/* TIME */
+
 function getTime(){
 
-    const now = new Date();
-
-    return now.toLocaleTimeString([], {
-
+    return new Date().toLocaleTimeString([],{
         hour:'2-digit',
         minute:'2-digit'
-
     });
 }
 
-// ================= SEND =================
+/* SEND MESSAGE */
 
 function sendMessage(){
-
-    const input = document.getElementById("msg");
 
     const msg = input.value.trim();
 
@@ -486,7 +364,7 @@ function sendMessage(){
 
         conversationId: roomId,
 
-        sender_username: "<%= user.user_name %>",
+        sender_username: username,
 
         message: msg
     });
@@ -494,43 +372,102 @@ function sendMessage(){
     input.value = "";
 }
 
-// ================= ENTER =================
+/* ENTER */
+
+input.addEventListener("keypress", function(e){
+
+    if(e.key === "Enter"){
+
+        sendMessage();
+    }
+});
+
+/* TYPING */
 
 input.addEventListener("input", () => {
+
     socket.emit("typing", {
-        conversationId,
-        userId,
-        isTyping: true
+
+        roomId: roomId,
+
+        username: username
     });
 });
-chatBox.addEventListener("scroll", () => {
 
-  socket.emit("message", {
-    conversationId: roomId,
-    sender_username: "<%= user.user_name %>",
-    message: msg
+socket.on("typing", (data) => {
+
+    if(data.username === username) return;
+
+    document.getElementById("typing").innerText =
+        data.username + " est en train d'écrire...";
+
+    setTimeout(() => {
+
+        document.getElementById("typing").innerText = "";
+
+    }, 2000);
 });
+
+/* RECEIVE MESSAGE */
+
+socket.on("message", (data) => {
+
+    const div = document.createElement("div");
+
+    div.classList.add("msg");
+
+    if(data.sender_username === username){
+
+        div.classList.add("me");
+
+    }else{
+
+        div.classList.add("other");
+    }
+
+    div.innerHTML = `
+
+        <span class="username">
+            @${data.sender_username}
+        </span>
+
+        <div class="text">
+            ${data.message}
+        </div>
+
+        <div class="time">
+
+            <span>${getTime()}</span>
+
+            ${
+                data.sender_username === username
+                ? '<span class="seen">✓✓</span>'
+                : ''
+            }
+
+        </div>
+    `;
+
+    chatBox.appendChild(div);
+
+    scrollBottom();
 });
 
+/* ONLINE STATUS */
 
-// ================= RECEIVE =================
-socket.on("message", async (data) => {
+socket.on("update_status", (data) => {
 
-    const { conversationId, sender_username, message } = data;
+    const status = document.getElementById("status");
 
-    if (!conversationId || isNaN(conversationId)) return;
+    if(data.username === "<%= otherUser.username %>"){
 
-    const result = await db.query(
-        `INSERT INTO messages (conversation_id, sender_username, message)
-         VALUES ($1,$2,$3)
-         RETURNING *`,
-        [conversationId, sender_username, message]
-    );
-
-    io.to(String(conversationId)).emit("message", result.rows[0]);
+        status.innerText =
+            data.online ? "En ligne" : "Hors ligne";
+    }
 });
 
 </script>
 
 </body>
 </html>
+```
