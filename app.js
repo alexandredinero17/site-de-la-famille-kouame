@@ -523,16 +523,44 @@ app.get('/galerie', (req, res) => {
     });
 });
 
-
 // ================= MEMBRES =================
-app.get('/membres', (req, res) => {
-    if (!req.session.user) return res.redirect('/login');
 
-    db.query("SELECT * FROM users ORDER BY id DESC", (err, result) => {
-        if (err) return res.status(500).send(err.message);
-        res.render('membres', { membres: result.rows, user: req.session.user });
-    });
+app.get('/membres', async (req, res) => {
+
+    try{
+
+        if(!req.session.user){
+
+            return res.redirect('/login');
+        }
+
+        const result = await db.query(
+
+            `SELECT
+                id,
+                nom,
+                username,
+                email,
+                photo
+            FROM users
+            ORDER BY id DESC`
+        );
+
+        res.render('membres', {
+
+            membres: result.rows,
+
+            user: req.session.user
+        });
+
+    }catch(err){
+
+        console.log("MEMBRES ERROR :", err);
+
+        res.status(500).send("Erreur interne du serveur");
+    }
 });
+
 
 // ================= EVENTS =================
 app.post("/add-event", async (req, res) => {
