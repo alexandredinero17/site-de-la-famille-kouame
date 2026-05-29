@@ -495,7 +495,7 @@ app.get('/events', (req, res) => {
 
 
 // ================= CHAT =================
-app.get('/chat/:userId', async (req, res) => {
+app.get('/chat/user/:id', async (req, res) => {
 
     try {
 
