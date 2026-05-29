@@ -180,10 +180,14 @@ footer{
 
             <div class="actions">
 
-                <a class="btn-chat"
-                   href="/chat/<%= membre.username %>">
-                    💬 Discuter
-                </a>
+                <% if(user.username !== membre.username){ %>
+
+<a class="btn chat"
+   href="/chat/<%= membre.username %>">
+   💬 Discuter
+</a>
+
+<% } %>
 
                 <% if(membre.telephone){ %>
 
