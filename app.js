@@ -297,6 +297,40 @@ app.post('/profile/photo', upload.single('photo'), async (req, res) => {
         res.status(500).send("Erreur mise à jour photo");
     }
 });
+app.post('/upload-image', upload.single('image'), async (req, res) => {
+
+    if (!req.session.user) {
+        return res.redirect('/login');
+    }
+
+    try {
+
+        if (!req.file) {
+            return res.status(400).send("Aucune image envoyée");
+        }
+
+        const imagePath = "/uploads/" + req.file.filename;
+
+        await db.query(
+            `INSERT INTO galerie (user_name, image, description, date)
+             VALUES ($1, $2, $3, $4)`,
+            [
+                req.session.user.nom,
+                imagePath,
+                req.body.description || "",
+                new Date()
+            ]
+        );
+
+        res.redirect('/galerie');
+
+    } catch (err) {
+
+        console.log("GALLERY UPLOAD ERROR:", err);
+
+        res.status(500).send("Erreur upload galerie");
+    }
+});
 // ================= DASHBOARD =================
 app.get('/dashboard', (req, res) => {
     if (!req.session.user) return res.redirect('/login');
