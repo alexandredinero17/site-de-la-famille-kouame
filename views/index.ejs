@@ -392,12 +392,16 @@
 
 const socket = io();
 
-const currentUserId = "<%= user.id %>";
+const currentUserId = "<%= user ? user.id : '' %>";
 
-socket.emit(
-    'join_user',
-    currentUserId
-);
+if(currentUserId){
+
+    socket.emit(
+        'join_user',
+        currentUserId
+    );
+
+}
 
 let notifCount = 0;
 
