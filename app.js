@@ -73,12 +73,10 @@ async function getOrCreateConversation(user1, user2) {
         [user1, user2]
     );
 
-    // conversation existe
     if (existing.rows.length > 0) {
         return existing.rows[0].id;
     }
 
-    // sinon création
     const created = await db.query(
         `INSERT INTO conversations (user1, user2)
          VALUES ($1,$2)
@@ -88,6 +86,46 @@ async function getOrCreateConversation(user1, user2) {
 
     return created.rows[0].id;
 }
+
+app.get('/chat/:userId', async (req, res) => {
+
+    try {
+
+        if (!req.session.user) {
+            return res.redirect('/login');
+        }
+
+        const myId = req.session.user.id;
+
+        const otherId = Number(req.params.userId);
+
+        // 🔥 conversation auto
+        const convId = await getOrCreateConversation(
+            myId,
+            otherId
+        );
+
+        // 🔥 messages
+        const result = await db.query(
+            `SELECT * FROM messages
+             WHERE conversation_id=$1
+             ORDER BY id ASC`,
+            [convId]
+        );
+
+        res.render('chat', {
+            roomId: convId,
+            messages: result.rows,
+            user: req.session.user
+        });
+
+    } catch (err) {
+
+        console.log("CHAT ERROR COMPLET:", err);
+
+        res.status(500).send("Erreur chat");
+    }
+});
 // ================= ADMIN =================
 function isAdmin(req, res, next) {
     if (req.session.user && req.session.user.role === "admin") return next();
@@ -181,19 +219,16 @@ const upload = multer({ storage });
 
 app.get('/conversations', async (req, res) => {
 
-    if (!req.session.user) {
-        return res.redirect('/login');
-    }
-
     try {
 
-        const user = req.session.user.nom;
+        const myId = req.session.user.id;
 
         const result = await db.query(
-            `SELECT * FROM conversations 
-             WHERE user1 = $1 OR user2 = $1 
+            `SELECT *
+             FROM conversations
+             WHERE user1=$1 OR user2=$1
              ORDER BY created_at DESC`,
-            [user]
+            [myId]
         );
 
         res.render('conversations', {
@@ -202,8 +237,10 @@ app.get('/conversations', async (req, res) => {
         });
 
     } catch (err) {
-        console.log("CONVERSATIONS ERROR:", err);
-        res.status(500).send("Erreur conversations");
+
+        console.log("CONVERSATION ERROR:", err);
+
+        res.status(500).send("Erreur conversation");
     }
 });
 
