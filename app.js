@@ -444,13 +444,12 @@ app.post('/delete-event/:id', isAdmin, async (req, res) => {
         res.status(500).send("Erreur suppression événement");
     }
 });
-app.post('/delete-image/:id', isAdmin, async (req, res) => {
-
-    const id = req.params.id;
+app.get('/delete-image/:id', isAdmin, async (req, res) => {
 
     try {
 
-        // 1. récupérer + supprimer en une seule étape logique
+        const id = req.params.id;
+
         const result = await db.query(
             "SELECT image FROM galerie WHERE id = $1",
             [id]
@@ -462,29 +461,21 @@ app.post('/delete-image/:id', isAdmin, async (req, res) => {
 
         const imagePath = result.rows[0].image;
 
-        // 2. supprimer DB AVANT fichier (plus rapide UX)
         await db.query(
             "DELETE FROM galerie WHERE id = $1",
             [id]
         );
 
-        // 3. répondre immédiatement à l'utilisateur
+        // supprimer fichier sans bloquer serveur
+        const fullPath = path.join(__dirname, "public", imagePath);
+
+        fs.unlink(fullPath, () => {});
+
         res.redirect('/admin/gallery');
-
-        // 4. suppression fichier en arrière-plan (NON bloquant)
-        setImmediate(() => {
-            const fullPath = path.join(__dirname, "public", imagePath);
-
-            fs.unlink(fullPath, (err) => {
-                if (err) {
-                    console.log("Fichier déjà supprimé ou introuvable");
-                }
-            });
-        });
 
     } catch (err) {
         console.log("DELETE IMAGE ERROR:", err);
-        res.status(500).send("Erreur suppression image");
+        res.status(500).send("Erreur serveur suppression image");
     }
 });
 app.get('/admin/membres', isAdmin, async (req, res) => {
