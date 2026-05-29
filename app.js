@@ -660,138 +660,48 @@ app.get('/conversations', async (req, res) => {
     }
 });
 // ================= PRIVATE CHAT =================
-app.get('/chat/:username', async (req, res) => {
+app.get('/chat/:username', (req, res) => {
 
-    try {
+    if (!req.session.user) {
+        return res.redirect('/login');
+    }
 
-        // utilisateur connecté
-        if (!req.session.user) {
-            return res.redirect('/login');
+    const username = req.params.username;
+
+    // Empêche de chatter avec soi-même
+    if(username === req.session.user.username){
+        return res.redirect('/membres');
+    }
+
+    const sql = `
+        SELECT * FROM users
+        WHERE LOWER(username) = LOWER($1)
+        LIMIT 1
+    `;
+
+    db.query(sql, [username], (err, result) => {
+
+        if(err){
+            console.log(err);
+            return res.send("Erreur serveur");
         }
 
-        const me = req.session.user;
+        console.log("USERNAME:", username);
+        console.log("RESULT:", result.rows);
 
-        // username cible
-        const username = req.params.username;
-        if(username === req.session.user.username){
-    return res.redirect('/messages');
-}
-
-        // chercher utilisateur
-        const userResult = await db.query(
-            `
-            SELECT *
-            FROM users
-            WHERE username=$1
-            LIMIT 1
-            `,
-            [username]
-        );
-
-        // utilisateur inexistant
-        if (userResult.rows.length === 0) {
-
-            return res.send(
-                "Utilisateur introuvable"
-            );
+        if(result.rows.length === 0){
+            return res.send("Utilisateur introuvable");
         }
 
-        const other = userResult.rows[0];
+        const membre = result.rows[0];
 
-        // empêcher chat avec soi-même
-        if (other.id === me.id) {
-
-            return res.redirect('/membres');
-        }
-
-        // chercher conversation existante
-        let conv = await db.query(
-            `
-            SELECT *
-            FROM conversations
-
-            WHERE
-            (
-                user1=$1
-                AND
-                user2=$2
-            )
-
-            OR
-
-            (
-                user1=$2
-                AND
-                user2=$1
-            )
-
-            LIMIT 1
-            `,
-            [me.id, other.id]
-        );
-
-        let conversationId;
-
-        // conversation existe déjà
-        if (conv.rows.length > 0) {
-
-            conversationId = conv.rows[0].id;
-
-        } else {
-
-            // créer nouvelle conversation privée
-            const created = await db.query(
-                `
-                INSERT INTO conversations
-                (
-                    user1,
-                    user2,
-                    created_at
-                )
-
-                VALUES ($1,$2,NOW())
-
-                RETURNING id
-                `,
-                [me.id, other.id]
-            );
-
-            conversationId = created.rows[0].id;
-        }
-
-        // récupérer uniquement messages privés
-        const messages = await db.query(
-            `
-            SELECT *
-            FROM messages
-
-            WHERE conversation_id=$1
-
-            ORDER BY id ASC
-            `,
-            [conversationId]
-        );
-
-        // ouvrir chat privé
         res.render('chat', {
-
-            roomId: conversationId,
-
-            messages: messages.rows,
-
-            user: me,
-
-            otherUser: other
+            membre,
+            user: req.session.user
         });
 
-    } catch (err) {
+    });
 
-        console.log("PRIVATE CHAT ERROR:", err);
-
-        res.status(500).send(
-            "Erreur chat privé"
-        );
-    }
 });
 
 // ================= ADMIN MIDDLEWARE =================

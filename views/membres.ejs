@@ -189,13 +189,16 @@ footer{
 
 <% } %>
 
-                <% if(membre.telephone){ %>
+               <% if(membre.telephone){ %>
 
-                <a class="btn-wa"
-                   target="_blank"
-                   href="https://wa.me/<%= membre.telephone.replace(/[^0-9]/g,'') %>">
-                    📲 WhatsApp
-                </a>
+<a class="btn whatsapp"
+target="_blank"
+href="https://wa.me/225<%= membre.telephone.replace(/\D/g, '') %>">
+
+   📲 WhatsApp
+
+</a>
+
 
                 <% } %>
 
