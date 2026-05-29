@@ -181,6 +181,9 @@ footer{
             <div class="actions">
 
                 <% if(user.username !== membre.username){ %>
+                    <p style="color:red">
+    USERNAME = <%= membre.username %>
+</p>
 
 <a class="btn chat"
    href="/chat/<%= membre.username %>">
@@ -193,7 +196,7 @@ footer{
 
 <a class="btn whatsapp"
 target="_blank"
-href="https://wa.me/225<%= membre.telephone.replace(/\D/g, '') %>">
+href="https://wa.me/225<%=membre.telephone.replace(/\D/g, '') %>">
 
    📲 WhatsApp
 

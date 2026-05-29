@@ -662,37 +662,49 @@ app.get('/conversations', async (req, res) => {
 // ================= PRIVATE CHAT =================
 app.get('/chat/:username', (req, res) => {
 
+    // Vérifie connexion
     if (!req.session.user) {
         return res.redirect('/login');
     }
 
     const username = req.params.username;
 
-    // Empêche de chatter avec soi-même
-    if(username === req.session.user.username){
+    console.log("USERNAME REÇU :", username);
+
+    // Empêche chat avec soi-même
+    if (
+        username.toLowerCase() ===
+        req.session.user.username.toLowerCase()
+    ) {
         return res.redirect('/membres');
     }
 
+    // Recherche utilisateur
     const sql = `
-        SELECT * FROM users
+        SELECT *
+        FROM users
         WHERE LOWER(username) = LOWER($1)
         LIMIT 1
     `;
 
     db.query(sql, [username], (err, result) => {
 
-        if(err){
-            console.log(err);
+        if (err) {
+
+            console.log("ERREUR SQL :", err);
+
             return res.send("Erreur serveur");
         }
 
-        console.log("USERNAME:", username);
-        console.log("RESULT:", result.rows);
+        console.log("RESULTAT :", result.rows);
 
-        if(result.rows.length === 0){
+        // Utilisateur introuvable
+        if (result.rows.length === 0) {
+
             return res.send("Utilisateur introuvable");
         }
 
+        // Utilisateur trouvé
         const membre = result.rows[0];
 
         res.render('chat', {
@@ -703,7 +715,6 @@ app.get('/chat/:username', (req, res) => {
     });
 
 });
-
 // ================= ADMIN MIDDLEWARE =================
 
 function isAdmin(req, res, next){
