@@ -544,29 +544,6 @@ app.post("/profile/photo", upload.single("photo"), async (req, res) => {
         res.status(500).send("Erreur photo profil");
     }
 });
-app.post("/upload-image", upload.single("image"), async (req, res) => {
-
-    try {
-
-        const image = "/uploads/" + req.file.filename;
-
-        await db.query(
-            `INSERT INTO galerie (username, image, description)
-             VALUES ($1,$2,$3)`,
-            [
-                req.session.user.nom,
-                image,
-                req.body.description || ""
-            ]
-        );
-
-        res.redirect("/galerie");
-
-    } catch (err) {
-        console.log(err);
-        res.status(500).send("Erreur upload image");
-    }
-});
 // ================= DASHBOARD =================
 app.get('/dashboard', (req, res) => {
     if (!req.session.user) return res.redirect('/login');
