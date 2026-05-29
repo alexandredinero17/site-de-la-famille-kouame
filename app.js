@@ -444,49 +444,50 @@ app.post('/delete-event/:id', isAdmin, async (req, res) => {
         res.status(500).send("Erreur suppression événement");
     }
 });
-app.get('/delete-image/:id', async (req, res) => {
+app.post('/delete-image/:id', isAdmin, async (req, res) => {
+
+    const id = req.params.id;
 
     try {
-
-        const id = req.params.id;
 
         const result = await db.query(
             "SELECT image FROM galerie WHERE id = $1",
             [id]
         );
 
+        // si image inexistante → on sort proprement
         if (!result.rows || result.rows.length === 0) {
-            return res.status(404).send("Image introuvable");
+            return res.redirect('/admin/gallery');
         }
 
         const imagePath = result.rows[0].image;
 
+        // suppression DB (priorité)
         await db.query(
             "DELETE FROM galerie WHERE id = $1",
             [id]
         );
 
-        // réponse immédiate (évite timeout)
+        // réponse immédiate (ULTRA RAPIDE)
         res.redirect('/admin/gallery');
 
-        // suppression fichier en arrière-plan
+        // suppression fichier en arrière-plan (SAFE)
         if (imagePath) {
             const fullPath = path.join(__dirname, "public", imagePath);
 
             fs.unlink(fullPath, (err) => {
                 if (err) {
-                    console.log("Fichier déjà supprimé ou introuvable");
+                    console.log("Image déjà supprimée ou introuvable");
                 }
             });
         }
-process.on("uncaughtException", console.log);
-process.on("unhandledRejection", console.log);
+
     } catch (err) {
+        console.log("DELETE IMAGE ERROR:", err);
 
-    console.log("💥 DELETE IMAGE ERROR COMPLET :", err);
-    res.status(500).send(err.message);
-}
-
+        // jamais de crash utilisateur
+        return res.redirect('/admin/gallery');
+    }
 });
 app.get('/admin/membres', isAdmin, async (req, res) => {
 
