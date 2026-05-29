@@ -64,6 +64,36 @@ button{
 
 </head>
 <body>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+
+const conversationId = "<%= conversation.id %>";
+const userId = "<%= user.id %>";
+
+socket.emit("join", conversationId);
+function sendMessage() {
+
+    const input = document.getElementById("msg");
+
+    socket.emit("send_message", {
+        conversation_id: conversationId,
+        sender_id: userId,
+        message: input.value
+    });
+
+    input.value = "";
+}
+socket.on("receive_message", (data) => {
+
+    const div = document.createElement("div");
+
+    div.innerHTML = data.message;
+
+    document.getElementById("messages").appendChild(div);
+
+});
+</script>
 
 <div class="header">
 
@@ -86,7 +116,7 @@ button{
 
 </div>
 
-<div class="messages">
+<div class="messages" id="messages">
 
     <p>
         Conversation avec <%= membre.nom %>
@@ -96,15 +126,18 @@ button{
 
 <form class="form">
 
-    <input
-        type="text"
-        placeholder="Votre message...">
+   <input
+    id="msg"
+    type="text"
+    placeholder="Votre message..."
+>
 
-    <button>
-        Envoyer
-    </button>
+   <button type="button" onclick="sendMessage()">
+    Envoyer
+</button>
 
 </form>
+
 
 </body>
 </html>

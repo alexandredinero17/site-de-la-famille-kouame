@@ -23,14 +23,12 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 
-io.on("connection", (socket) => {
+io.on('connection', (socket) => {
 
     console.log("Utilisateur connecté");
 
-    // REJOINDRE ROOM
-    socket.on("join", (roomId) => {
-
-        socket.join(String(roomId));
+    socket.on('join', (room) => {
+        socket.join(room);
     });
 
     // MESSAGE LIVE
@@ -285,10 +283,11 @@ app.get('/chat/:username', (req, res) => {
 
             const membre = result.rows[0];
 
-            res.render('chat', {
-                membre,
-                user: req.session.user
-            });
+           res.render('chat', {
+    membre,
+    user,
+    conversation
+});
 
         }
     );
