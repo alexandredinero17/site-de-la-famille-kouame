@@ -444,36 +444,48 @@ app.post('/delete-event/:id', isAdmin, async (req, res) => {
         res.status(500).send("Erreur suppression événement");
     }
 });
-app.get('/delete-image/:id', isAdmin, (req, res) => {
+app.post('/delete-image/:id', isAdmin, async (req, res) => {
 
     const id = req.params.id;
 
-    db.query(
-        "SELECT * FROM galerie WHERE id = $1",
-        [id],
-        (err, results) => {
+    try {
 
-            if (err) return res.send("Erreur base de données");
-            if (results.length === 0) return res.send("Image introuvable");
+        // 1. récupérer + supprimer en une seule étape logique
+        const result = await db.query(
+            "SELECT image FROM galerie WHERE id = $1",
+            [id]
+        );
 
-            const imagePath = results[0].image;
-
-            db.query(
-                "DELETE FROM galerie WHERE id = $1",
-                [id],
-                (err2) => {
-
-                    if (err2) return res.send("Erreur suppression DB");
-
-                    const fullPath = path.join(__dirname, "public", imagePath);
-
-                    fs.unlink(fullPath, () => {});
-
-                    res.redirect('/galerie');
-                }
-            );
+        if (result.rows.length === 0) {
+            return res.status(404).send("Image introuvable");
         }
-    );
+
+        const imagePath = result.rows[0].image;
+
+        // 2. supprimer DB AVANT fichier (plus rapide UX)
+        await db.query(
+            "DELETE FROM galerie WHERE id = $1",
+            [id]
+        );
+
+        // 3. répondre immédiatement à l'utilisateur
+        res.redirect('/admin/gallery');
+
+        // 4. suppression fichier en arrière-plan (NON bloquant)
+        setImmediate(() => {
+            const fullPath = path.join(__dirname, "public", imagePath);
+
+            fs.unlink(fullPath, (err) => {
+                if (err) {
+                    console.log("Fichier déjà supprimé ou introuvable");
+                }
+            });
+        });
+
+    } catch (err) {
+        console.log("DELETE IMAGE ERROR:", err);
+        res.status(500).send("Erreur suppression image");
+    }
 });
 app.get('/admin/membres', isAdmin, async (req, res) => {
 
