@@ -63,6 +63,31 @@ app.use(session({
     }
 }));
 
+async function getOrCreateConversation(user1, user2) {
+
+    const existing = await db.query(
+        `SELECT id FROM conversations
+         WHERE (user1=$1 AND user2=$2)
+         OR (user1=$2 AND user2=$1)
+         LIMIT 1`,
+        [user1, user2]
+    );
+
+    // conversation existe
+    if (existing.rows.length > 0) {
+        return existing.rows[0].id;
+    }
+
+    // sinon création
+    const created = await db.query(
+        `INSERT INTO conversations (user1, user2)
+         VALUES ($1,$2)
+         RETURNING id`,
+        [user1, user2]
+    );
+
+    return created.rows[0].id;
+}
 // ================= ADMIN =================
 function isAdmin(req, res, next) {
     if (req.session.user && req.session.user.role === "admin") return next();
@@ -133,34 +158,6 @@ io.on("connection", (socket) => {
     });
 
 });
-async function getOrCreateConversation(user1, user2) {
-
-    const existing = await db.query(
-        `SELECT c.id
-         FROM conversations c
-         JOIN conversation_users cu1 ON c.id = cu1.conversation_id
-         JOIN conversation_users cu2 ON c.id = cu2.conversation_id
-         WHERE cu1.user_id=$1 AND cu2.user_id=$2`,
-        [user1, user2]
-    );
-
-    if (existing.rows.length > 0) {
-        return existing.rows[0].id;
-    }
-
-    const conv = await db.query(
-        "INSERT INTO conversations DEFAULT VALUES RETURNING id"
-    );
-
-    const convId = conv.rows[0].id;
-
-    await db.query(
-        "INSERT INTO conversation_users (conversation_id, user_id) VALUES ($1,$2),($1,$3)",
-        [convId, user1, user2]
-    );
-
-    return convId;
-}
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -463,23 +460,36 @@ app.get('/events', (req, res) => {
 // ================= CHAT =================
 app.get('/chat/:userId', async (req, res) => {
 
-    const myId = req.session.user.id;
-    const otherId = req.params.userId;
+    try {
 
-    const convId = await getOrCreateConversation(myId, otherId);
+        const myId = req.session.user.id;
 
-    const messages = await db.query(
-        `SELECT * FROM messages 
-         WHERE conversation_id=$1 
-         ORDER BY created_at ASC`,
-        [convId]
-    );
+        const otherId = req.params.userId;
 
-    res.render("chat", {
-        roomId: convId,
-        messages: messages.rows,
-        user: req.session.user
-    });
+        const convId = await getOrCreateConversation(
+            myId,
+            otherId
+        );
+
+        const messages = await db.query(
+            `SELECT * FROM messages
+             WHERE conversation_id=$1
+             ORDER BY id ASC`,
+            [convId]
+        );
+
+        res.render('chat', {
+            roomId: convId,
+            messages: messages.rows,
+            user: req.session.user
+        });
+
+    } catch (err) {
+
+        console.log("CHAT ERROR:", err);
+
+        res.status(500).send("Erreur chat");
+    }
 });
 // ================= LOGOUT =================
 app.get('/logout', (req, res) => {
