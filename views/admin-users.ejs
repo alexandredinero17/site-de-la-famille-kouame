@@ -3,6 +3,159 @@
 <head>
     <meta charset="UTF-8">
     <title>Admin Users</title>
+
+    <style>
+
+        *{
+            margin:0;
+            padding:0;
+            box-sizing:border-box;
+        }
+
+        body{
+            font-family:Arial;
+            background:#0b141a;
+            color:white;
+            padding:30px;
+        }
+
+        h1{
+            margin-bottom:30px;
+            font-size:32px;
+        }
+
+        .users-container{
+            display:grid;
+            grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+            gap:20px;
+        }
+
+        .user-card{
+
+            background:#202c33;
+
+            border-radius:20px;
+
+            padding:20px;
+
+            position:relative;
+
+            overflow:hidden;
+
+            transition:0.3s;
+
+            border:1px solid rgba(255,255,255,0.05);
+
+            animation:fadeIn 0.4s ease;
+        }
+
+        .user-card:hover{
+
+            transform:translateY(-5px) scale(1.01);
+
+            box-shadow:0 10px 25px rgba(0,0,0,0.4);
+        }
+
+        .user-card::before{
+
+            content:"";
+
+            position:absolute;
+
+            top:0;
+            left:0;
+
+            width:100%;
+            height:4px;
+
+            background:#00a884;
+        }
+
+        .user-name{
+
+            font-size:22px;
+
+            color:#00d5a5;
+
+            margin-bottom:12px;
+
+            font-weight:bold;
+        }
+
+        .user-email{
+
+            color:#ddd;
+
+            margin-bottom:10px;
+
+            word-wrap:break-word;
+        }
+
+        .user-role{
+
+            color:#888;
+
+            font-size:14px;
+
+            margin-bottom:20px;
+        }
+
+        .delete-btn{
+
+            width:100%;
+
+            padding:12px;
+
+            border:none;
+
+            border-radius:12px;
+
+            background:#ff3b30;
+
+            color:white;
+
+            font-weight:bold;
+
+            cursor:pointer;
+
+            transition:0.3s;
+        }
+
+        .delete-btn:hover{
+
+            background:#ff1f12;
+
+            transform:scale(1.02);
+        }
+
+        .empty{
+
+            background:#202c33;
+
+            padding:30px;
+
+            border-radius:15px;
+
+            text-align:center;
+
+            color:#aaa;
+        }
+
+        @keyframes fadeIn{
+
+            from{
+                opacity:0;
+                transform:translateY(15px);
+            }
+
+            to{
+                opacity:1;
+                transform:translateY(0);
+            }
+        }
+
+    </style>
+
 </head>
 <body>
 
@@ -10,26 +163,52 @@
 
 <% if(users.length > 0){ %>
 
-  <% users.forEach(user => { %>
+<div class="users-container">
 
-        <div style="border:1px solid #ccc;padding:10px;margin:10px;">
+    <% users.forEach(user => { %>
 
-            <h3><%= user.nom %></h3>
+        <div class="user-card" id="user-<%= user.id %>">
 
-            <p><%= user.email %></p>
-<a href="/delete-user/<%= user.id %>" method="POST" onclick="return confirm('Supprimer cet utilisateur ?')">
-        Supprimer
-</a>
+            <div class="user-name">
+                <%= user.nom %>
+            </div>
 
+            <div class="user-email">
+                <%= user.email %>
+            </div>
 
+            <div class="user-role">
+                Rôle : <%= user.role || "membre" %>
+            </div>
+
+            <form
+                action="/delete-user/<%= user.id %>"
+                method="POST"
+            >
+
+                <button
+                    class="delete-btn"
+                    type="submit"
+                    onclick="return confirm('Supprimer cet utilisateur ?')"
+                >
+                    Supprimer
+                </button>
+
+            </form>
 
         </div>
 
     <% }) %>
 
+</div>
+
 <% } else { %>
 
-<p>Aucun utilisateur</p>
+<div class="empty">
+
+    Aucun utilisateur
+
+</div>
 
 <% } %>
 

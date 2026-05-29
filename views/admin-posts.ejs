@@ -2,7 +2,162 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Admin Posts</title>
+    <title>Admin Publications</title>
+
+    <style>
+
+        *{
+            margin:0;
+            padding:0;
+            box-sizing:border-box;
+        }
+
+        body{
+            font-family:Arial;
+            background:#0b141a;
+            color:white;
+            padding:30px;
+        }
+
+        h1{
+            margin-bottom:30px;
+            font-size:32px;
+        }
+
+        .posts-container{
+            display:grid;
+            grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+            gap:20px;
+        }
+
+        .post-card{
+
+            background:#202c33;
+
+            border-radius:20px;
+
+            padding:20px;
+
+            position:relative;
+
+            overflow:hidden;
+
+            transition:0.3s;
+
+            border:1px solid rgba(255,255,255,0.05);
+
+            animation:fadeIn 0.4s ease;
+        }
+
+        .post-card:hover{
+
+            transform:translateY(-5px) scale(1.01);
+
+            box-shadow:0 10px 25px rgba(0,0,0,0.4);
+        }
+
+        .post-card::before{
+
+            content:"";
+
+            position:absolute;
+
+            top:0;
+            left:0;
+
+            width:100%;
+            height:4px;
+
+            background:#00a884;
+        }
+
+        .author{
+
+            font-size:20px;
+
+            color:#00d5a5;
+
+            margin-bottom:15px;
+
+            font-weight:bold;
+        }
+
+        .content{
+
+            color:#ddd;
+
+            line-height:1.6;
+
+            margin-bottom:20px;
+
+            word-wrap:break-word;
+        }
+
+        .date{
+
+            color:#888;
+
+            font-size:13px;
+
+            margin-bottom:15px;
+        }
+
+        .delete-btn{
+
+            width:100%;
+
+            padding:12px;
+
+            border:none;
+
+            border-radius:12px;
+
+            background:#ff3b30;
+
+            color:white;
+
+            font-weight:bold;
+
+            cursor:pointer;
+
+            transition:0.3s;
+        }
+
+        .delete-btn:hover{
+
+            background:#ff1f12;
+
+            transform:scale(1.02);
+        }
+
+        .empty{
+
+            background:#202c33;
+
+            padding:30px;
+
+            border-radius:15px;
+
+            text-align:center;
+
+            color:#aaa;
+        }
+
+        @keyframes fadeIn{
+
+            from{
+                opacity:0;
+                transform:translateY(15px);
+            }
+
+            to{
+                opacity:1;
+                transform:translateY(0);
+            }
+        }
+
+    </style>
+
 </head>
 <body>
 
@@ -10,25 +165,52 @@
 
 <% if(posts.length > 0){ %>
 
+<div class="posts-container">
+
     <% posts.forEach(post => { %>
 
-        <div style="border:1px solid #ccc;padding:10px;margin:10px;">
+        <div class="post-card" id="post-<%= post.id %>">
 
-            <h3><%= post.auteur %></h3>
+            <div class="author">
+                <%= post.auteur %>
+            </div>
 
-            <p><%= post.contenu %></p>
+            <div class="content">
+                <%= post.contenu %>
+            </div>
 
-            <a href="/delete-post/<%= post.id %>"onclick="return confirm('Supprimer cette image ?')">
-    Supprimer
-</a>
+            <div class="date">
+                <%= post.date || "" %>
+            </div>
+
+            <form
+                action="/delete-post/<%= post.id %>"
+                method="POST"
+            >
+
+                <button
+                    class="delete-btn"
+                    type="submit"
+                    onclick="return confirm('Supprimer cette publication ?')"
+                >
+                    Supprimer
+                </button>
+
+            </form>
 
         </div>
 
     <% }) %>
 
+</div>
+
 <% } else { %>
 
-<p>Aucune publication</p>
+<div class="empty">
+
+    Aucune publication
+
+</div>
 
 <% } %>
 

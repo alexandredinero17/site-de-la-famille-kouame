@@ -1,17 +1,246 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestion Chats</title>
+
+    <style>
+
+        *{
+            margin:0;
+            padding:0;
+            box-sizing:border-box;
+        }
+
+        body{
+            font-family:Arial;
+            background:#0b141a;
+            color:white;
+            padding:30px;
+        }
+
+        h1{
+            margin-bottom:30px;
+            font-size:32px;
+        }
+
+        .chat-container{
+            display:grid;
+            grid-template-columns:repeat(auto-fill,minmax(330px,1fr));
+            gap:20px;
+        }
+
+        .chat-card{
+
+            background:#202c33;
+
+            border-radius:20px;
+
+            padding:20px;
+
+            position:relative;
+
+            overflow:hidden;
+
+            transition:0.3s;
+
+            border:1px solid rgba(255,255,255,0.05);
+
+            animation:fadeIn 0.4s ease;
+        }
+
+        .chat-card:hover{
+
+            transform:translateY(-5px) scale(1.01);
+
+            box-shadow:0 10px 25px rgba(0,0,0,0.4);
+        }
+
+        .chat-card::before{
+
+            content:"";
+
+            position:absolute;
+
+            top:0;
+            left:0;
+
+            width:100%;
+            height:4px;
+
+            background:#00a884;
+        }
+
+        .user{
+
+            font-size:22px;
+
+            color:#00d5a5;
+
+            font-weight:bold;
+
+            margin-bottom:10px;
+        }
+
+        .chat-info{
+
+            color:#bbb;
+
+            margin-bottom:20px;
+
+            line-height:1.5;
+        }
+
+        .btn-group{
+
+            display:flex;
+
+            gap:10px;
+        }
+
+        .view-btn,
+        .delete-btn{
+
+            flex:1;
+
+            padding:12px;
+
+            border:none;
+
+            border-radius:12px;
+
+            cursor:pointer;
+
+            font-weight:bold;
+
+            transition:0.3s;
+
+            text-decoration:none;
+
+            text-align:center;
+        }
+
+        .view-btn{
+
+            background:#00a884;
+
+            color:white;
+        }
+
+        .view-btn:hover{
+
+            background:#00c79a;
+
+            transform:scale(1.03);
+        }
+
+        .delete-btn{
+
+            background:#ff3b30;
+
+            color:white;
+        }
+
+        .delete-btn:hover{
+
+            background:#ff1f12;
+
+            transform:scale(1.03);
+        }
+
+        .empty{
+
+            background:#202c33;
+
+            padding:30px;
+
+            border-radius:15px;
+
+            text-align:center;
+
+            color:#aaa;
+        }
+
+        @keyframes fadeIn{
+
+            from{
+                opacity:0;
+                transform:translateY(15px);
+            }
+
+            to{
+                opacity:1;
+                transform:translateY(0);
+            }
+        }
+
+    </style>
+
+</head>
+<body>
+
 <h1>💬 Gestion des chats</h1>
 
-<% conversations.forEach(c => { %>
+<% if(conversations.length > 0){ %>
 
-    <div style="padding:10px; border-bottom:1px solid #ccc;">
-        <p>
-            <b><%= c.user1 %></b>
-        </p>
+<div class="chat-container">
 
-        <a href="/admin/chat/<%= c.id %>">Voir messages</a>
+    <% conversations.forEach(c => { %>
 
-        <form method="POST" action="/admin/delete-conversation/<%= c.id %>">
-            <button>Supprimer</button>
-        </form>
-    </div>
+        <div class="chat-card" id="chat-<%= c.id %>">
 
-<% }) %>
+            <div class="user">
+                <%= c.user1 %>
+            </div>
+
+            <div class="chat-info">
+
+                Conversation avec :
+                <b><%= c.user2 || "Utilisateur" %></b>
+
+            </div>
+
+            <div class="btn-group">
+
+                <a
+                    class="view-btn"
+                    href="/admin/chat/<%= c.id %>"
+                >
+                    Voir messages
+                </a>
+
+                <form
+                    method="POST"
+                    action="/admin/delete-conversation/<%= c.id %>"
+                    style="flex:1;"
+                >
+
+                    <button
+                        class="delete-btn"
+                        onclick="return confirm('Supprimer cette conversation ?')"
+                    >
+                        Supprimer
+                    </button>
+
+                </form>
+
+            </div>
+
+        </div>
+
+    <% }) %>
+
+</div>
+
+<% } else { %>
+
+<div class="empty">
+
+    Aucune conversation
+
+</div>
+
+<% } %>
+
+</body>
+</html>

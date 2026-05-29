@@ -3,6 +3,157 @@
 <head>
     <meta charset="UTF-8">
     <title>Admin Messages</title>
+
+    <style>
+
+        *{
+            margin:0;
+            padding:0;
+            box-sizing:border-box;
+        }
+
+        body{
+            font-family:Arial;
+            background:#0b141a;
+            color:white;
+            padding:30px;
+        }
+
+        h1{
+            margin-bottom:30px;
+            font-size:32px;
+        }
+
+        .messages-container{
+            display:grid;
+            grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+            gap:20px;
+        }
+
+        .message-card{
+
+            background:#202c33;
+            border-radius:20px;
+            padding:20px;
+
+            transition:0.3s;
+
+            position:relative;
+
+            overflow:hidden;
+
+            border:1px solid rgba(255,255,255,0.05);
+
+            animation:fadeIn 0.4s ease;
+        }
+
+        .message-card:hover{
+            transform:translateY(-5px) scale(1.01);
+            box-shadow:0 10px 25px rgba(0,0,0,0.4);
+        }
+
+        .message-card::before{
+
+            content:"";
+
+            position:absolute;
+
+            top:0;
+            left:0;
+
+            width:100%;
+            height:4px;
+
+            background:#00a884;
+        }
+
+        .sender{
+
+            font-weight:bold;
+
+            color:#00d5a5;
+
+            margin-bottom:10px;
+
+            font-size:17px;
+        }
+
+        .message-text{
+
+            color:#ddd;
+
+            line-height:1.5;
+
+            word-wrap:break-word;
+
+            margin-bottom:20px;
+        }
+
+        .date{
+
+            font-size:13px;
+
+            color:#888;
+
+            margin-bottom:15px;
+        }
+
+        .delete-btn{
+
+            width:100%;
+
+            padding:12px;
+
+            border:none;
+
+            border-radius:12px;
+
+            background:#ff3b30;
+
+            color:white;
+
+            cursor:pointer;
+
+            transition:0.3s;
+
+            font-weight:bold;
+        }
+
+        .delete-btn:hover{
+
+            background:#ff1f12;
+
+            transform:scale(1.02);
+        }
+
+        .empty{
+
+            background:#202c33;
+
+            padding:30px;
+
+            border-radius:15px;
+
+            text-align:center;
+
+            color:#aaa;
+        }
+
+        @keyframes fadeIn{
+
+            from{
+                opacity:0;
+                transform:translateY(15px);
+            }
+
+            to{
+                opacity:1;
+                transform:translateY(0);
+            }
+        }
+
+    </style>
+
 </head>
 <body>
 
@@ -10,20 +161,52 @@
 
 <% if(messages.length > 0){ %>
 
+<div class="messages-container">
+
     <% messages.forEach(msg => { %>
 
-        <div style="padding:10px;border-bottom:1px solid #ccc;">
-            <%= msg %>
+        <div class="message-card" id="msg-<%= msg.id %>">
+
+            <div class="sender">
+                <%= msg.sender || "Utilisateur" %>
+            </div>
+
+            <div class="message-text">
+                <%= msg.message %>
+            </div>
+
+            <div class="date">
+                <%= msg.created_at || "" %>
+            </div>
+
+            <form
+                action="/delete-message/<%= msg.id %>"
+                method="POST"
+            >
+
+                <button
+                    class="delete-btn"
+                    type="submit"
+                    onclick="return confirm('Supprimer ce message ?')"
+                >
+                    Supprimer
+                </button>
+
+            </form>
+
         </div>
-   <a href="/delete-message/<%= msg.id %>"onclick="return confirm('Supprimer cette image ?')">
-    Supprimer
-</a>
 
     <% }) %>
 
+</div>
+
 <% } else { %>
 
-<p>Aucun message</p>
+<div class="empty">
+
+    Aucun message
+
+</div>
 
 <% } %>
 
