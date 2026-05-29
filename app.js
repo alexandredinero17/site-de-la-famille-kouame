@@ -74,48 +74,31 @@ io.on("connection", (socket) => {
 
     console.log("User connecté");
 
-    // rejoindre room chat
     socket.on("join", (conversationId) => {
         socket.join(conversationId);
     });
 
-    // message
     socket.on("message", async (data) => {
 
         const { conversationId, sender, message } = data;
 
-        // save DB
-        await db.query(
-            `INSERT INTO messages (conversation_id, sender, message, status, created_at)
-             VALUES ($1,$2,$3,$4,NOW())`,
-            [conversationId, sender, message, "sent"]
-        );
+        try {
+            await db.query(
+                `INSERT INTO messages (conversation_id, sender, message, created_at)
+                 VALUES ($1, $2, $3, NOW())`,
+                [conversationId, sender, message]
+            );
 
-        // broadcast
-        io.to(conversationId).emit("message", {
-            sender,
-            message,
-            status: "sent",
-            time: new Date()
-        });
+            io.to(conversationId).emit("message", {
+                sender,
+                message,
+                time: new Date()
+            });
 
-        // notification globale
-        socket.broadcast.emit("notification", {
-            sender,
-            conversationId
-        });
+        } catch (err) {
+            console.log("CHAT ERROR:", err);
+        }
     });
-
-    // online status
-    socket.on("online", async (userId) => {
-        await db.query("UPDATE users SET online=true WHERE id=$1", [userId]);
-        io.emit("user_online", userId);
-    });
-
-    socket.on("disconnect", () => {
-        console.log("User déconnecté");
-    });
-
 });
 const storage = multer.diskStorage({
 
@@ -309,42 +292,7 @@ app.get('/galerie', (req, res) => {
         res.render('galerie', { images: result.rows, user: req.session.user });
     });
 });
-app.post('/upload-image', upload.single('image'), async (req, res) => {
 
-    if (!req.session.user) {
-        return res.redirect('/login');
-    }
-
-    try {
-
-        if (!req.file) {
-            return res.send("Aucune image envoyée");
-        }
-
-        const user = req.session.user.nom;
-
-        const image = "/uploads/" + req.file.filename;
-
-        await db.query(
-            `INSERT INTO galerie (user, image, date, description)
-             VALUES ($1, $2, $3, $4)`,
-            [
-                req.session.user.nom,
-                image,
-                new Date(),
-                req.body.description || ""
-            ]
-        );
-
-        res.redirect('/galerie');
-
-    } catch (err) {
-
-        console.log("UPLOAD ERROR:", err);
-
-        res.status(500).send("Erreur upload image");
-    }
-});
 
 // ================= MEMBRES =================
 app.get('/membres', (req, res) => {
@@ -407,12 +355,12 @@ app.get('/chat/:id', async (req, res) => {
 
     try {
 
-      const roomId = String(req.params.id);
+        const roomId = req.params.id;
 
         const result = await db.query(
             `SELECT * FROM messages 
              WHERE conversation_id = $1 
-             ORDER BY id ASC`,
+             ORDER BY created_at ASC`,
             [roomId]
         );
 
@@ -424,7 +372,7 @@ app.get('/chat/:id', async (req, res) => {
 
     } catch (err) {
         console.log("CHAT ERROR:", err);
-        res.status(500).send("Erreur chat serveur");
+        res.status(500).send("Erreur chat");
     }
 });
 // ================= LOGOUT =================
@@ -461,22 +409,6 @@ app.get('/admin', isAdmin, async (req, res) => {
         res.status(500).send("Erreur serveur admin");
     }
 });
-app.get('/delete-post/:id', isAdmin, (req, res) => {
-
-    db.query(
-        "DELETE FROM posts WHERE id = $1",
-        [req.params.id],
-        (err) => {
-
-            if (err) {
-                console.log(err);
-                return res.send("Erreur suppression");
-            }
-
-            res.redirect('/admin/posts');
-        }
-    );
-});
 app.post('/delete-user/:id', isAdmin, (req, res) => {
 
     db.query(
@@ -493,24 +425,7 @@ app.post('/delete-user/:id', isAdmin, (req, res) => {
         }
     );
 });
-app.get('/delete-user/:id', isAdmin, async (req, res) => {
 
-    try {
-
-        await db.query(
-            "DELETE FROM users WHERE id = $1",
-            [req.params.id]
-        );
-
-        res.redirect('/admin/membres');
-
-    } catch (err) {
-
-        console.log("DELETE USER ERROR:", err);
-
-        res.status(500).send("Erreur suppression utilisateur");
-    }
-});
 app.post('/delete-event/:id', isAdmin, async (req, res) => {
 
     try {
@@ -619,6 +534,11 @@ app.get('/admin/chats', isAdmin, async (req, res) => {
     res.render('admin-chats', {
         conversations: conv.rows,
         user: req.session.user
+    });
+});
+app.get('/admin/messages', isAdmin, async (req, res) => {
+    res.render('admin-messages', {
+        messages: []
     });
 });
 app.get('/admin/chat/:id', isAdmin, async (req, res) => {
