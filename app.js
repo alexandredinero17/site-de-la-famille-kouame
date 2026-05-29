@@ -21,7 +21,6 @@ require('dotenv').config();
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
-const socket = io();
 
 const roomId = Number("<%= roomId %>");
 const input = document.getElementById("msg");
