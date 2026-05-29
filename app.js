@@ -95,37 +95,29 @@ function isAdmin(req, res, next) {
 // ================= SOCKET.IO =================
 io.on("connection", (socket) => {
 
-    // JOIN ROOM
     socket.on("join", (conversationId) => {
 
-        // 🔥 sécurité : doit être un nombre
-        if (isNaN(conversationId)) {
-            console.log("❌ ROOM INVALID:", conversationId);
+        if (typeof conversationId !== "number" && isNaN(conversationId)) {
+            console.log("❌ JOIN INVALID:", conversationId);
             return;
         }
 
         socket.join(String(conversationId));
     });
 
-    // MESSAGE
     socket.on("message", async (data) => {
 
-        const {
-            conversationId,
-            sender_username,
-            message
-        } = data;
+        const { conversationId, sender_username, message } = data;
 
-        // 🚨 FIX CRITIQUE ICI
-        if (isNaN(conversationId)) {
-            console.log("❌ conversationId invalide:", conversationId);
+        // 🔥 BLOCAGE BUG
+        if (!conversationId || isNaN(conversationId)) {
+            console.log("❌ MESSAGE REJETÉ:", data);
             return;
         }
 
-        const result = await db.query(
+        await db.query(
             `INSERT INTO messages (conversation_id, sender_username, message)
-             VALUES ($1,$2,$3)
-             RETURNING id`,
+             VALUES ($1,$2,$3)`,
             [
                 Number(conversationId),
                 sender_username,
@@ -134,61 +126,12 @@ io.on("connection", (socket) => {
         );
 
         io.to(String(conversationId)).emit("message", {
-            id: result.rows[0].id,
             conversationId,
             sender_username,
             message
         });
     });
-
 });
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-
-        const dir = "public/uploads";
-
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-        }
-
-        cb(null, dir);
-    },
-
-    filename: (req, file, cb) => {
-        const unique = Date.now() + "-" + Math.round(Math.random() * 1e9);
-        cb(null, unique + path.extname(file.originalname));
-    }
-});
-
-const upload = multer({ storage });
-
-app.get('/conversations', async (req, res) => {
-
-    try {
-
-        const myId = req.session.user.id;
-
-        const result = await db.query(
-            `SELECT *
-             FROM conversations
-             WHERE user1=$1 OR user2=$1
-             ORDER BY created_at DESC`,
-            [myId]
-        );
-
-        res.render('conversations', {
-            conversations: result.rows,
-            user: req.session.user
-        });
-
-    } catch (err) {
-
-        console.log("CONVERSATION ERROR:", err);
-
-        res.status(500).send("Erreur conversation");
-    }
-});
-
 // ================= HOME =================
 app.get('/', (req, res) => {
     db.query("SELECT * FROM posts ORDER BY id DESC", (err, result) => {
@@ -506,6 +449,7 @@ console.log("🔥 CHAT ERROR FULL:", err);
 console.log(err.stack);
 res.status(500).send(err.message);
 console.log(typeof conversationId, conversationId);
+console.log("CHAT DATA:", data);
     }
 });
 // ================= LOGOUT =================
