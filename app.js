@@ -503,8 +503,9 @@ app.get('/chat/:username', async (req, res) => {
         });
 
     } catch (err) {
-        console.log("CHAT ERROR FULL:", err);
-        res.status(500).send("Erreur chat serveur");
+console.log("🔥 CHAT ERROR FULL:", err);
+console.log(err.stack);
+res.status(500).send(err.message);
     }
 });
 // ================= LOGOUT =================
