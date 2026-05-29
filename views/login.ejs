@@ -1,32 +1,164 @@
-
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <title>Connexion</title>
-    <link rel="stylesheet" href="/css/style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Connexion</title>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    font-family:Arial;
+    background:#0b141a;
+    color:white;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+/* CARD */
+.container{
+    width:100%;
+    max-width:420px;
+    padding:20px;
+}
+
+.card{
+    background:#202c33;
+    padding:30px;
+    border-radius:20px;
+    box-shadow:0 10px 25px rgba(0,0,0,0.4);
+    animation:fadeIn 0.5s ease;
+}
+
+/* TITLE */
+h1{
+    text-align:center;
+    margin-bottom:25px;
+    color:#00d5a5;
+}
+
+/* INPUTS */
+input[type="email"],
+input[type="password"]{
+
+    width:100%;
+    padding:14px;
+    margin-bottom:15px;
+
+    border:none;
+    border-radius:12px;
+
+    background:#111b21;
+    color:white;
+
+    outline:none;
+}
+
+input:focus{
+    border:1px solid #00a884;
+}
+
+/* CHECKBOX */
+label{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    color:#bbb;
+    font-size:14px;
+    margin-bottom:15px;
+}
+
+/* BUTTON */
+button{
+    width:100%;
+    padding:14px;
+
+    border:none;
+    border-radius:12px;
+
+    background:#00a884;
+    color:white;
+
+    font-weight:bold;
+    cursor:pointer;
+
+    transition:0.3s;
+}
+
+button:hover{
+    background:#00c79a;
+    transform:scale(1.03);
+}
+
+/* ANIMATION */
+@keyframes fadeIn{
+    from{
+        opacity:0;
+        transform:translateY(20px);
+    }
+    to{
+        opacity:1;
+        transform:translateY(0);
+    }
+}
+
+</style>
+
 </head>
+
 <body>
 
-<header>
-    <h1>Connexion</h1>
-</header>
-
 <div class="container">
+
+    <h1>🔐 Connexion</h1>
+
     <div class="card">
+
         <form action="/login" method="POST">
 
-    <input type="email" name="email" placeholder="Email" required>
+            <input
+                type="email"
+                name="email"
+                placeholder="Adresse email"
+                required
+            >
 
-    <input type="password" name="password" placeholder="Mot de passe" required>
+            <input
+                type="password"
+                name="password"
+                placeholder="Mot de passe"
+                required
+            >
 
-    <button type="submit">Connexion</button>
-    <label>
-  <input type="checkbox" name="remember"> Se souvenir de moi
-</label>
+            <label>
 
-</form>
+                <input
+                    type="checkbox"
+                    name="remember"
+                >
+
+                Se souvenir de moi
+
+            </label>
+
+            <button type="submit">
+
+                Se connecter
+
+            </button>
+
+        </form>
+
     </div>
+
 </div>
 
 </body>

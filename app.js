@@ -101,53 +101,23 @@ io.on("connection", (socket) => {
     });
 });
 const storage = multer.diskStorage({
-
-    destination: function (req, file, cb) {
-
-        const uploadPath = path.join(__dirname, 'public/uploads');
-
-        if (!fs.existsSync(uploadPath)) {
-            fs.mkdirSync(uploadPath, { recursive: true });
-        }
-
-        cb(null, uploadPath);
+    destination: (req, file, cb) => {
+        cb(null, "public/uploads");
     },
-
-    filename: function (req, file, cb) {
-
-        const uniqueName =
-            Date.now() + "-" + Math.round(Math.random() * 1E9);
-
-        cb(
-            null,
-            uniqueName + path.extname(file.originalname)
-        );
+    filename: (req, file, cb) => {
+        const name = Date.now() + "-" + Math.round(Math.random() * 1e9);
+        cb(null, name + path.extname(file.originalname));
     }
 });
 
 const upload = multer({
-
     storage,
-
-    limits: {
-        fileSize: 5 * 1024 * 1024
-    },
-
+    limits: { fileSize: 5 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
-
-        const allowed = [
-            "image/jpeg",
-            "image/png",
-            "image/jpg"
-        ];
-
-        if (allowed.includes(file.mimetype)) {
-
+        if (["image/jpeg", "image/png", "image/jpg"].includes(file.mimetype)) {
             cb(null, true);
-
         } else {
-
-            cb(new Error("Format image invalide"));
+            cb(new Error("Image invalide"));
         }
     }
 });
@@ -222,22 +192,45 @@ app.get('/login', (req, res) => res.render('login'));
 app.get('/register', (req, res) => res.render('register'));
 
 // ================= REGISTER =================
-app.post('/register', async (req, res) => {
+app.post('/register', upload.single('photo'), async (req, res) => {
+
     try {
-        const { nom, email, telephone, profession, branche, description, password } = req.body;
+
+        const {
+            nom,
+            email,
+            telephone,
+            profession,
+            branche,
+            description,
+            password
+        } = req.body;
+
+        const photo = req.file ? "/uploads/" + req.file.filename : null;
+
         const hash = await bcrypt.hash(password, 10);
 
-        db.query(
-            `INSERT INTO users (nom,email,telephone,profession,branche,description,password)
-             VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-            [nom,email,telephone,profession,branche,description,hash],
-            (err) => {
-                if (err) return res.status(500).send(err.message);
-                res.redirect('/login');
-            }
+        await db.query(
+            `INSERT INTO users
+            (nom,email,telephone,profession,branche,description,password,photo)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+            [
+                nom,
+                email,
+                telephone,
+                profession,
+                branche,
+                description,
+                hash,
+                photo
+            ]
         );
-    } catch (e) {
-        res.status(500).send(e.message);
+
+        res.redirect('/login');
+
+    } catch (err) {
+        console.log(err);
+        res.status(500).send("Erreur inscription");
     }
 });
 
@@ -274,6 +267,35 @@ app.post('/login', async (req, res) => {
         res.status(500).send("Erreur serveur");
     }
     app.set('trust proxy', 1);
+});
+app.post('/profile/photo', upload.single('photo'), async (req, res) => {
+
+    if (!req.session.user) {
+        return res.redirect('/login');
+    }
+
+    try {
+
+        if (!req.file) {
+            return res.send("Aucune image envoyée");
+        }
+
+        const photo = "/uploads/" + req.file.filename;
+
+        await db.query(
+            "UPDATE users SET photo = $1 WHERE id = $2",
+            [photo, req.session.user.id]
+        );
+
+        // mise à jour session (IMPORTANT)
+        req.session.user.photo = photo;
+<img src="<%= user.photo %>?t=<%= Date.now() %>"></img>
+        res.redirect('/dashboard');
+
+    } catch (err) {
+        console.log("PHOTO UPDATE ERROR:", err);
+        res.status(500).send("Erreur mise à jour photo");
+    }
 });
 // ================= DASHBOARD =================
 app.get('/dashboard', (req, res) => {

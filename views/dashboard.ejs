@@ -1,28 +1,305 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
+
     <link rel="stylesheet" href="/css/style.css">
+
+    <style>
+
+        *{
+            margin:0;
+            padding:0;
+            box-sizing:border-box;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        body{
+            background:
+            linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.8)),
+            url('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=2070&auto=format&fit=crop');
+            background-size:cover;
+            background-position:center;
+            background-attachment:fixed;
+            min-height:100vh;
+            color:white;
+            overflow-x:hidden;
+        }
+
+        /* ANIMATION BACKGROUND */
+
+        body::before{
+            content:"";
+            position:fixed;
+            width:500px;
+            height:500px;
+            background:#00bfff;
+            border-radius:50%;
+            filter:blur(180px);
+            top:-150px;
+            left:-150px;
+            opacity:0.4;
+            animation: float1 8s infinite alternate;
+            z-index:-1;
+        }
+
+        body::after{
+            content:"";
+            position:fixed;
+            width:400px;
+            height:400px;
+            background:#ff00ff;
+            border-radius:50%;
+            filter:blur(180px);
+            bottom:-100px;
+            right:-100px;
+            opacity:0.3;
+            animation: float2 10s infinite alternate;
+            z-index:-1;
+        }
+
+        @keyframes float1{
+            from{
+                transform:translateY(0px) translateX(0px);
+            }
+            to{
+                transform:translateY(60px) translateX(40px);
+            }
+        }
+
+        @keyframes float2{
+            from{
+                transform:translateY(0px) translateX(0px);
+            }
+            to{
+                transform:translateY(-50px) translateX(-30px);
+            }
+        }
+
+        header{
+            padding:25px;
+            backdrop-filter:blur(15px);
+            background:rgba(255,255,255,0.08);
+            border-bottom:1px solid rgba(255,255,255,0.1);
+            position:sticky;
+            top:0;
+            z-index:1000;
+            animation:slideDown 1s ease;
+        }
+
+        @keyframes slideDown{
+            from{
+                transform:translateY(-100%);
+                opacity:0;
+            }
+            to{
+                transform:translateY(0);
+                opacity:1;
+            }
+        }
+
+        header h1{
+            margin-bottom:15px;
+            font-size:32px;
+            animation: glow 2s infinite alternate;
+        }
+
+        @keyframes glow{
+            from{
+                text-shadow:0 0 10px #00bfff;
+            }
+            to{
+                text-shadow:0 0 25px #00bfff;
+            }
+        }
+
+        nav{
+            display:flex;
+            flex-wrap:wrap;
+            gap:15px;
+        }
+
+        nav a{
+            text-decoration:none;
+            color:white;
+            padding:12px 20px;
+            border-radius:12px;
+            background:rgba(255,255,255,0.08);
+            transition:0.4s;
+            position:relative;
+            overflow:hidden;
+        }
+
+        nav a::before{
+            content:"";
+            position:absolute;
+            width:0%;
+            height:100%;
+            background:linear-gradient(90deg,#00bfff,#ff00ff);
+            top:0;
+            left:0;
+            z-index:-1;
+            transition:0.5s;
+        }
+
+        nav a:hover::before{
+            width:100%;
+        }
+
+        nav a:hover{
+            transform:translateY(-5px) scale(1.05);
+            box-shadow:0 10px 25px rgba(0,0,0,0.4);
+        }
+
+        .container{
+            width:90%;
+            max-width:1000px;
+            margin:40px auto;
+        }
+
+        .card{
+            background:rgba(255,255,255,0.08);
+            backdrop-filter:blur(18px);
+            border:1px solid rgba(255,255,255,0.1);
+            padding:25px;
+            border-radius:25px;
+            margin-bottom:30px;
+            transition:0.5s;
+            animation:fadeUp 1s ease;
+        }
+
+        .card:hover{
+            transform:translateY(-8px) scale(1.01);
+            box-shadow:0 15px 35px rgba(0,0,0,0.5);
+        }
+
+        @keyframes fadeUp{
+            from{
+                opacity:0;
+                transform:translateY(40px);
+            }
+            to{
+                opacity:1;
+                transform:translateY(0);
+            }
+        }
+
+        h2{
+            margin-bottom:20px;
+            font-size:28px;
+        }
+
+        h3{
+            margin-bottom:10px;
+            color:#00d9ff;
+        }
+
+        textarea{
+            width:100%;
+            min-height:120px;
+            border:none;
+            outline:none;
+            border-radius:20px;
+            padding:18px;
+            resize:none;
+            background:rgba(255,255,255,0.1);
+            color:white;
+            font-size:16px;
+            transition:0.4s;
+        }
+
+        textarea:focus{
+            transform:scale(1.02);
+            box-shadow:0 0 20px rgba(0,191,255,0.5);
+        }
+
+        textarea::placeholder{
+            color:#ddd;
+        }
+
+        button{
+            margin-top:15px;
+            border:none;
+            padding:14px 25px;
+            border-radius:15px;
+            cursor:pointer;
+            font-size:16px;
+            color:white;
+            background:linear-gradient(45deg,#00bfff,#ff00ff);
+            transition:0.4s;
+            font-weight:bold;
+        }
+
+        button:hover{
+            transform:scale(1.08);
+            box-shadow:0 10px 25px rgba(255,0,255,0.4);
+        }
+
+        small{
+            color:#ccc;
+            display:block;
+            margin-top:15px;
+        }
+
+        /* SCROLLBAR */
+
+        ::-webkit-scrollbar{
+            width:10px;
+        }
+
+        ::-webkit-scrollbar-thumb{
+            background:linear-gradient(#00bfff,#ff00ff);
+            border-radius:20px;
+        }
+
+        /* RESPONSIVE */
+
+        @media(max-width:768px){
+
+            header h1{
+                font-size:24px;
+            }
+
+            nav{
+                flex-direction:column;
+            }
+
+            nav a{
+                width:100%;
+                text-align:center;
+            }
+
+            .container{
+                width:95%;
+            }
+
+        }
+
+    </style>
+
 </head>
+
 <body>
 
 <header>
 
-    <h1>Bienvenue <%= user.nom %></h1>
+    <h1>✨ Bienvenue <%= user.nom %></h1>
 
     <nav>
-        <a href="/">Accueil</a>
-        <a href="/membres">Membres</a>
-        <a href="/galerie">Galerie</a>
-        <a href="/events">Événements</a>
-        <a href="/conversations">💬 Voir les conversations</a>
+        <a href="/">🏠 Accueil</a>
+        <a href="/membres">👨‍👩‍👧 Membres</a>
+        <a href="/galerie">🖼 Galerie</a>
+        <a href="/events">🎉 Événements</a>
+        <a href="/conversations">💬 Conversations</a>
         <a class="btn" href="/chat/ami">➕ Nouveau chat</a>
 
         <% if (user.role === "admin") { %>
-            <a href="/admin">Admin</a>
+            <a href="/admin">⚙ Admin</a>
         <% } %>
 
-        <a href="/logout">Déconnexion</a>
+        <a href="/logout">🚪 Déconnexion</a>
     </nav>
 
 </header>
@@ -42,14 +319,14 @@
             </textarea>
 
             <button type="submit">
-                Publier
+                🚀 Publier
             </button>
 
         </form>
 
     </div>
 
-    <h2>Publications</h2>
+    <h2>📢 Publications</h2>
 
     <% if (posts.length > 0) { %>
 
@@ -62,7 +339,7 @@
                 <p><%= post.contenu %></p>
 
                 <small>
-                    <%= post.date %>
+                    ⏰ <%= post.date %>
                 </small>
 
             </div>
@@ -71,11 +348,68 @@
 
     <% } else { %>
 
-        <p>Aucune publication</p>
+        <div class="card">
+            <p>Aucune publication 😢</p>
+        </div>
 
     <% } %>
 
 </div>
+<div class="profile-card">
+
+    <img src="<%= user.photo || '/images/default.png' %>"
+         style="width:120px;height:120px;border-radius:50%;object-fit:cover;">
+
+    <h2><%= user.nom %></h2>
+
+    <p><%= user.email %></p>
+
+</div>
+
+<h3>Changer photo de profil</h3>
+
+<form action="/profile/photo"
+      method="POST"
+      enctype="multipart/form-data">
+
+    <input type="file" name="photo" accept="image/*" required>
+
+    <button type="submit">Mettre à jour</button>
+
+</form>
+
+<script>
+
+    // Animation apparition au scroll
+
+    const cards = document.querySelectorAll('.card');
+
+    const observer = new IntersectionObserver(entries => {
+
+        entries.forEach(entry => {
+
+            if(entry.isIntersecting){
+
+                entry.target.style.opacity = 1;
+                entry.target.style.transform = "translateY(0px)";
+
+            }
+
+        });
+
+    });
+
+    cards.forEach(card => {
+
+        card.style.opacity = 0;
+        card.style.transform = "translateY(50px)";
+        card.style.transition = "0.8s";
+
+        observer.observe(card);
+
+    });
+
+</script>
 
 </body>
 </html>

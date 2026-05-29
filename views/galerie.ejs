@@ -1,70 +1,332 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <title>Galerie</title>
-    <link rel="stylesheet" href="/css/style.css">
+
+    <style>
+
+        *{
+            margin:0;
+            padding:0;
+            box-sizing:border-box;
+        }
+
+        body{
+            font-family:Arial;
+            background:#0b141a;
+            color:white;
+            padding:30px;
+        }
+
+        header{
+            margin-bottom:30px;
+        }
+
+        header h1{
+            font-size:38px;
+        }
+
+        /* FORM */
+
+        .upload-card{
+
+            background:#202c33;
+
+            border-radius:20px;
+
+            padding:25px;
+
+            margin-bottom:40px;
+
+            animation:fadeIn 0.5s ease;
+        }
+
+        .upload-card p{
+
+            margin-bottom:20px;
+
+            color:#ccc;
+
+            line-height:1.6;
+        }
+
+        .upload-card input,
+        .upload-card textarea{
+
+            width:100%;
+
+            padding:14px;
+
+            border:none;
+
+            border-radius:12px;
+
+            background:#111b21;
+
+            color:white;
+
+            margin-bottom:15px;
+
+            outline:none;
+
+            font-size:15px;
+        }
+
+        .upload-card textarea{
+
+            resize:none;
+
+            height:120px;
+        }
+
+        .upload-card input:focus,
+        .upload-card textarea:focus{
+
+            border:1px solid #00a884;
+        }
+
+        .upload-card button{
+
+            width:100%;
+
+            padding:14px;
+
+            border:none;
+
+            border-radius:12px;
+
+            background:#00a884;
+
+            color:white;
+
+            font-weight:bold;
+
+            cursor:pointer;
+
+            transition:0.3s;
+        }
+
+        .upload-card button:hover{
+
+            background:#00c79a;
+
+            transform:scale(1.02);
+        }
+
+        /* GALLERY */
+
+        .gallery-title{
+
+            margin-bottom:25px;
+
+            font-size:32px;
+        }
+
+        .gallery{
+
+            display:grid;
+
+            grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+
+            gap:25px;
+        }
+
+        .gallery-card{
+
+            background:#202c33;
+
+            border-radius:20px;
+
+            overflow:hidden;
+
+            transition:0.3s;
+
+            border:1px solid rgba(255,255,255,0.05);
+
+            animation:fadeIn 0.5s ease;
+        }
+
+        .gallery-card:hover{
+
+            transform:translateY(-5px);
+
+            box-shadow:0 10px 25px rgba(0,0,0,0.4);
+        }
+
+        .gallery-image{
+
+            width:100%;
+
+            height:260px;
+
+            object-fit:cover;
+
+            display:block;
+        }
+
+        .gallery-content{
+
+            padding:18px;
+        }
+
+        .gallery-user{
+
+            font-size:18px;
+
+            color:#00d5a5;
+
+            margin-bottom:10px;
+
+            font-weight:bold;
+        }
+
+        .gallery-description{
+
+            color:#ddd;
+
+            line-height:1.5;
+        }
+
+        .empty{
+
+            background:#202c33;
+
+            padding:30px;
+
+            border-radius:15px;
+
+            text-align:center;
+
+            color:#aaa;
+        }
+
+        footer{
+
+            margin-top:50px;
+
+            text-align:center;
+
+            color:#666;
+
+            font-size:14px;
+        }
+
+        @keyframes fadeIn{
+
+            from{
+                opacity:0;
+                transform:translateY(15px);
+            }
+
+            to{
+                opacity:1;
+                transform:translateY(0);
+            }
+        }
+
+    </style>
+
 </head>
 <body>
 
 <header>
-    <h1>Galerie Familiale</h1>
+
+    <h1>🖼️ Galerie Familiale</h1>
+
 </header>
 
-<div class="container">
-    <div class="card">
-        <p>Ajoutez ici les photos de votre famille, cérémonies et souvenirs.</p>
-<form action="/upload-image"
-      method="POST"
-      enctype="multipart/form-data">
+<div class="upload-card">
 
-    <input type="file"
-           name="image"
-           required>
+    <p>
 
-    <textarea
-        name="description"
-        placeholder="Ajouter une description...">
-    </textarea>
+        Ajoutez ici les photos de votre famille,
+        cérémonies et souvenirs.
 
-    <button type="submit">
-        Publier
-    </button>
+    </p>
 
-</form>
-    </div>
+    <form
+        action="/upload-image"
+        method="POST"
+        enctype="multipart/form-data"
+    >
 
-<hr>
-<h1>Galerie</h1>
+        <input
+            type="file"
+            name="image"
+            required
+        >
 
+        <textarea
+            name="description"
+            placeholder="Ajouter une description..."
+        ></textarea>
+
+        <button type="submit">
+
+            Publier
+
+        </button>
+
+    </form>
+
+</div>
+
+<h1 class="gallery-title">
+
+    📸 Galerie
+
+</h1>
+
+<% if(images.length > 0){ %>
 
 <div class="gallery">
 
-<% images.forEach(img => { %>
+    <% images.forEach(img => { %>
 
-    <div class="card">
+        <div class="gallery-card">
 
-        <p>
-            <strong>
-                <%= img.user %>
-            </strong>
-        </p>
+            <img
+                src="<%= img.image %>"
+                class="gallery-image"
+            >
 
-        <img
-       <img src="<%= img.image %>" width="200">
+            <div class="gallery-content">
 
-        <p class="gallery-description">
-            <%= img.description %>
-        </p>
+                <div class="gallery-user">
 
-    </div>
+                    <%= img.user_name || img.user %>
 
-<% }) %>
+                </div>
+
+                <div class="gallery-description">
+
+                    <%= img.description || "Aucune description" %>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    <% }) %>
 
 </div>
+
+<% } else { %>
+
+<div class="empty">
+
+    Aucune image dans la galerie
+
+</div>
+
+<% } %>
+
 <footer>
+
     LA GRANDE FAMILLE KOUAME
+
 </footer>
 
 </body>

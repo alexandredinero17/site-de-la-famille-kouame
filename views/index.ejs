@@ -1,71 +1,525 @@
-
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
+
     <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
     <title>Famille KOUAME</title>
-    <link rel="stylesheet" href="/css/style.css">
+
+    <style>
+
+        *{
+            margin:0;
+            padding:0;
+            box-sizing:border-box;
+        }
+
+        body{
+
+            font-family:Arial;
+
+            background:#0b141a;
+
+            color:white;
+
+            min-height:100vh;
+        }
+
+        a{
+            text-decoration:none;
+        }
+
+        /* HEADER */
+
+        header{
+
+            background:#202c33;
+
+            padding:20px 40px;
+
+            display:flex;
+
+            justify-content:space-between;
+
+            align-items:center;
+
+            flex-wrap:wrap;
+
+            position:sticky;
+
+            top:0;
+
+            z-index:999;
+
+            box-shadow:0 5px 20px rgba(0,0,0,0.3);
+        }
+
+        header h1{
+
+            font-size:28px;
+
+            color:#00d5a5;
+        }
+
+        nav{
+
+            display:flex;
+
+            gap:12px;
+
+            flex-wrap:wrap;
+        }
+
+        nav a{
+
+            color:white;
+
+            background:#111b21;
+
+            padding:10px 16px;
+
+            border-radius:12px;
+
+            transition:0.3s;
+
+            font-size:14px;
+        }
+
+        nav a:hover{
+
+            background:#00a884;
+
+            transform:translateY(-2px);
+        }
+
+        .chat-btn{
+
+            background:#00a884;
+        }
+
+        .logout{
+
+            background:#ff3b30;
+        }
+
+        /* HERO */
+
+        .hero{
+
+            min-height:70vh;
+
+            display:flex;
+
+            flex-direction:column;
+
+            justify-content:center;
+
+            align-items:center;
+
+            text-align:center;
+
+            padding:40px;
+
+            background:
+            linear-gradient(
+                rgba(0,0,0,0.7),
+                rgba(0,0,0,0.7)
+            ),
+            url('/images/famille-bg.jpg');
+
+            background-size:cover;
+
+            background-position:center;
+        }
+
+        .hero h1{
+
+            font-size:60px;
+
+            margin-bottom:20px;
+
+            animation:fadeDown 1s ease;
+        }
+
+        .hero p{
+
+            font-size:20px;
+
+            color:#ddd;
+
+            margin-bottom:30px;
+
+            animation:fadeUp 1s ease;
+        }
+
+        .hero .btn{
+
+            background:#00a884;
+
+            padding:16px 28px;
+
+            border-radius:14px;
+
+            color:white;
+
+            font-weight:bold;
+
+            transition:0.3s;
+        }
+
+        .hero .btn:hover{
+
+            background:#00c79a;
+
+            transform:scale(1.05);
+        }
+
+        /* POSTS */
+
+        .container{
+
+            padding:50px 40px;
+        }
+
+        .container h2{
+
+            margin-bottom:30px;
+
+            font-size:36px;
+        }
+
+        .posts{
+
+            display:grid;
+
+            grid-template-columns:
+            repeat(auto-fill,minmax(320px,1fr));
+
+            gap:25px;
+        }
+
+        .card{
+
+            background:#202c33;
+
+            border-radius:20px;
+
+            padding:25px;
+
+            transition:0.3s;
+
+            position:relative;
+
+            overflow:hidden;
+
+            border:1px solid rgba(255,255,255,0.05);
+
+            animation:fadeCard 0.5s ease;
+        }
+
+        .card:hover{
+
+            transform:translateY(-6px);
+
+            box-shadow:0 10px 25px rgba(0,0,0,0.4);
+        }
+
+        .card::before{
+
+            content:"";
+
+            position:absolute;
+
+            top:0;
+            left:0;
+
+            width:100%;
+            height:4px;
+
+            background:#00a884;
+        }
+
+        .card h3{
+
+            color:#00d5a5;
+
+            margin-bottom:15px;
+
+            font-size:22px;
+        }
+
+        .card p{
+
+            color:#ddd;
+
+            line-height:1.6;
+
+            margin-bottom:20px;
+        }
+
+        .card small{
+
+            color:#888;
+        }
+
+        .empty{
+
+            background:#202c33;
+
+            padding:30px;
+
+            border-radius:20px;
+
+            text-align:center;
+
+            color:#aaa;
+        }
+
+        /* FOOTER */
+
+        footer{
+
+            background:#111b21;
+
+            padding:25px;
+
+            text-align:center;
+
+            color:#777;
+
+            margin-top:50px;
+        }
+
+        /* ANIMATIONS */
+
+        @keyframes fadeDown{
+
+            from{
+                opacity:0;
+                transform:translateY(-40px);
+            }
+
+            to{
+                opacity:1;
+                transform:translateY(0);
+            }
+        }
+
+        @keyframes fadeUp{
+
+            from{
+                opacity:0;
+                transform:translateY(40px);
+            }
+
+            to{
+                opacity:1;
+                transform:translateY(0);
+            }
+        }
+
+        @keyframes fadeCard{
+
+            from{
+                opacity:0;
+                transform:translateY(20px);
+            }
+
+            to{
+                opacity:1;
+                transform:translateY(0);
+            }
+        }
+
+        /* MOBILE */
+
+        @media(max-width:768px){
+
+            header{
+
+                padding:20px;
+            }
+
+            .hero h1{
+
+                font-size:38px;
+            }
+
+            .hero p{
+
+                font-size:17px;
+            }
+
+            .container{
+
+                padding:30px 20px;
+            }
+
+            nav{
+
+                margin-top:15px;
+            }
+        }
+
+    </style>
+
 </head>
+
 <body>
 
 <header>
-    <h1>LA GRANDE FAMILLE KOUAME</h1>
-<nav>
-    <% if(user){ %>
-    <a href="/">Accueil</a>
 
-    <a href="/membres">Membres</a>
+    <h1>
 
-    <a href="/galerie">Galerie</a>
+        👑 LA GRANDE FAMILLE KOUAME
 
-    <a href="/events">Événements</a>
-      <a href="/conversations">💬 Voir les conversations</a>
-        <a class="btn" href="/chat/ami">➕ Nouveau chat</a>
+    </h1>
 
-        <a href="/dashboard">Dashboard</a>
+    <nav>
 
-        <a href="/logout">Déconnexion</a>
+        <% if(user){ %>
 
-    <% } else { %>
+            <a href="/">Accueil</a>
 
-        <a href="/login">Connexion</a>
+            <a href="/membres">Membres</a>
 
-        <a href="/register">Inscription</a>
+            <a href="/galerie">Galerie</a>
 
-    <% } %>
-</nav>
+            <a href="/events">Événements</a>
+
+            <a href="/conversations">
+                💬 Conversations
+            </a>
+
+            <a
+                class="chat-btn"
+                href="/chat/ami"
+            >
+                ➕ Nouveau chat
+            </a>
+
+            <a href="/dashboard">
+                Dashboard
+            </a>
+
+            <a
+                class="logout"
+                href="/logout"
+            >
+                Déconnexion
+            </a>
+
+        <% } else { %>
+
+            <a href="/login">
+
+                Connexion
+
+            </a>
+
+            <a href="/register">
+
+                Inscription
+
+            </a>
+
+        <% } %>
+
+    </nav>
+
 </header>
 
 <section class="hero">
-    <h1>Le réseau social familial</h1>
-    <p>Partagez vos souvenirs et vos événements</p>
+
+    <h1>
+
+        Le réseau social familial
+
+    </h1>
+
+    <p>
+
+        Partagez vos souvenirs,
+        événements et moments précieux.
+
+    </p>
 
     <% if(!user){ %>
-        <a href="/register" class="btn">Créer un compte</a>
+
+        <a
+            href="/register"
+            class="btn"
+        >
+
+            Créer un compte
+
+        </a>
+
     <% } %>
+
 </section>
 
 <div class="container">
-    <h2>Dernières publications</h2>
-<% if (posts && posts.length > 0) { %>
 
-    <% posts.forEach(post => { %>
-        <div class="card">
-            <h3><%= post.auteur %></h3>
-            <p><%= post.contenu %></p>
-            <small><%= post.date %></small>
+    <h2>
+
+        📰 Dernières publications
+
+    </h2>
+
+    <% if(posts && posts.length > 0){ %>
+
+        <div class="posts">
+
+            <% posts.forEach(post => { %>
+
+                <div class="card">
+
+                    <h3>
+
+                        <%= post.auteur %>
+
+                    </h3>
+
+                    <p>
+
+                        <%= post.contenu %>
+
+                    </p>
+
+                    <small>
+
+                        🕒 <%= post.date %>
+
+                    </small>
+
+                </div>
+
+            <% }) %>
+
         </div>
-    <% }) %>
 
-<% } else { %>
+    <% } else { %>
 
-    <p>Aucune publication pour le moment</p>
+        <div class="empty">
 
-<% } %>
+            Aucune publication pour le moment
+
+        </div>
+
+    <% } %>
+
 </div>
 
 <footer>
-    © 2026 - Famille KOUAME
+
+    © 2026 — Famille KOUAME
+
 </footer>
 
 </body>

@@ -14,18 +14,18 @@
 
 <div class="container">
     <div class="card">
-        <form action="/register" method="POST">
+    <form action="/register" method="POST" enctype="multipart/form-data">
 
-    <input type="text" name="nom" placeholder="Nom complet" required>
-
+    <input type="text" name="nom" placeholder="Nom" required>
     <input type="email" name="email" placeholder="Email" required>
-
     <input type="text" name="telephone" placeholder="Téléphone">
 
     <input type="text" name="profession" placeholder="Profession">
 
-  <select name="branche" required>
+    <select name="branche" required>
 
+    <input type="text" name="branche" placeholder="Branche">
+    
     <option value="">Choisir une branche</option>
 
     <option value="fils">Fils</option>
@@ -47,16 +47,16 @@
     <option value="soeur">Soeur</option>
 
 </select>
-
-    <textarea name="description" placeholder="Parlez de vous"></textarea>
+    <textarea name="description" placeholder="Description"></textarea>
 
     <input type="password" name="password" placeholder="Mot de passe" required>
 
-    <button type="submit">S'inscrire</button>
+    <!-- PHOTO -->
+    <input type="file" name="photo" accept="image/*" required>
+
+    <button type="submit">Créer le compte</button>
 
 </form>
-
-    </div>
 </div>
 
 </body>
