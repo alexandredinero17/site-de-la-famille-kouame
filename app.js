@@ -268,56 +268,140 @@ app.get('/conversations', async (req, res) => {
 
 app.get('/chat/:username', async (req, res) => {
 
-    if (!req.session.user) {
-        return res.redirect('/login');
-    }
-
-    const username = req.params.username;
-
-    if (username === req.session.user.username) {
-        return res.redirect('/membres');
-    }
-
     try {
 
+        // sécurité connexion
+        if (!req.session.user) {
+            return res.redirect('/login');
+        }
+
+        const currentUser = req.session.user;
+
+        const username = req.params.username;
+
+        console.log("USERNAME :", username);
+
+        // utilisateur cible
         const userResult = await db.query(
-            "SELECT * FROM users WHERE username = $1 LIMIT 1",
+            `
+            SELECT *
+            FROM users
+            WHERE username = $1
+            `,
             [username]
         );
 
+        console.log("USER RESULT :", userResult.rows);
+
+        // introuvable
         if (userResult.rows.length === 0) {
+
             return res.send("Utilisateur introuvable");
+
         }
 
         const membre = userResult.rows[0];
 
-        // ⚡ ne bloque pas si conversation n'existe pas
-        let conversation = null;
+        // empêcher soi-même
+        if (membre.id === currentUser.id) {
 
-        const convResult = await db.query(
-            `SELECT * FROM conversations 
-             WHERE id IN (
-                 SELECT conversation_id 
-                 FROM conversation_users 
-                 WHERE user_id = $1
-             )
-             LIMIT 1`,
-            [req.session.user.id]
-        );
+            return res.redirect('/membres');
 
-        if (convResult.rows.length > 0) {
-            conversation = convResult.rows[0];
         }
 
+        // chercher conversation
+        const convResult = await db.query(
+            `
+            SELECT c.id
+
+            FROM conversations c
+
+            INNER JOIN conversation_users cu1
+            ON cu1.conversation_id = c.id
+
+            INNER JOIN conversation_users cu2
+            ON cu2.conversation_id = c.id
+
+            WHERE cu1.user_id = $1
+            AND cu2.user_id = $2
+
+            LIMIT 1
+            `,
+            [
+                currentUser.id,
+                membre.id
+            ]
+        );
+
+        console.log("CONV RESULT :", convResult.rows);
+
+        let conversationId;
+
+        // conversation inexistante
+        if (convResult.rows.length === 0) {
+
+            const newConv = await db.query(
+                `
+                INSERT INTO conversations
+                DEFAULT VALUES
+                RETURNING id
+                `
+            );
+
+            conversationId = newConv.rows[0].id;
+
+            console.log("NEW CONV :", conversationId);
+
+            await db.query(
+                `
+                INSERT INTO conversation_users
+                (
+                    conversation_id,
+                    user_id
+                )
+                VALUES
+                ($1,$2),
+                ($1,$3)
+                `,
+                [
+                    conversationId,
+                    currentUser.id,
+                    membre.id
+                ]
+            );
+
+        } else {
+
+            conversationId = convResult.rows[0].id;
+
+        }
+
+        // messages
+        const messagesResult = await db.query(
+            `
+            SELECT *
+            FROM messages
+            WHERE conversation_id = $1
+            ORDER BY created_at ASC
+            `,
+            [conversationId]
+        );
+
         res.render('chat', {
+
             membre,
-            user: req.session.user,
-            conversation
+            user: currentUser,
+            conversationId,
+            messages: messagesResult.rows
+
         });
 
-    } catch (err) {
-        console.log(err);
-        res.send("Erreur serveur");
+    } catch(err){
+
+        console.log("ERREUR COMPLETE :", err);
+
+        res.send("Erreur interne du serveur");
+
     }
 
 });
