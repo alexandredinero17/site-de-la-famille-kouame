@@ -145,44 +145,286 @@ function isAdmin(req, res, next) {
 }
 
 // ================= SOCKET.IO =================
+// ================= SOCKET.IO =================
+
+const onlineUsers = new Map();
+
 io.on("connection", (socket) => {
+
+    // ================= USER ONLINE =================
+
+    socket.on("user_connected", async (userId) => {
+
+        if (!userId) return;
+
+        onlineUsers.set(String(userId), socket.id);
+
+        try {
+
+            await db.query(
+                "UPDATE users SET online = true WHERE id=$1",
+                [userId]
+            );
+
+        } catch (err) {
+
+            console.log("ONLINE ERROR:", err);
+        }
+    });
+
+    // ================= JOIN ROOM =================
 
     socket.on("join", (conversationId) => {
 
-        if (typeof conversationId !== "number" && isNaN(conversationId)) {
-            console.log("❌ JOIN INVALID:", conversationId);
-            return;
-        }
+        if (!conversationId) return;
 
         socket.join(String(conversationId));
+
+        console.log("ROOM JOIN:", conversationId);
     });
+
+    // ================= SEND MESSAGE =================
 
     socket.on("message", async (data) => {
 
-        const { conversationId, sender_username, message } = data;
+        try {
 
-        // 🔥 BLOCAGE BUG
-        if (!conversationId || isNaN(conversationId)) {
-            console.log("❌ MESSAGE REJETÉ:", data);
-            return;
-        }
-
-        await db.query(
-            `INSERT INTO messages (conversation_id, sender_username, message)
-             VALUES ($1,$2,$3)`,
-            [
-                Number(conversationId),
+            const {
+                conversationId,
                 sender_username,
                 message
-            ]
+            } = data;
+
+            if (!conversationId || !message) return;
+
+            // sauvegarde DB
+            const saved = await db.query(
+
+                `INSERT INTO messages
+                (conversation_id, sender_username, message, created_at)
+                VALUES ($1,$2,$3,NOW())
+                RETURNING *`,
+
+                [
+                    conversationId,
+                    sender_username,
+                    message
+                ]
+            );
+
+            // envoyer room
+            io.to(String(conversationId)).emit(
+                "message",
+                saved.rows[0]
+            );
+
+        } catch (err) {
+
+            console.log("MESSAGE ERROR:", err);
+        }
+    });
+
+    // ================= DISCONNECT =================
+
+    socket.on("disconnect", async () => {
+
+        try {
+
+            for (const [userId, socketId] of onlineUsers.entries()) {
+
+                if (socketId === socket.id) {
+
+                    onlineUsers.delete(userId);
+
+                    await db.query(
+                        "UPDATE users SET online = false WHERE id=$1",
+                        [userId]
+                    );
+
+                    console.log("USER OFFLINE:", userId);
+
+                    break;
+                }
+            }
+
+        } catch (err) {
+
+            console.log("DISCONNECT ERROR:", err);
+        }
+    });
+
+});
+
+
+// ================= CONVERSATIONS =================
+
+app.get('/conversations', async (req, res) => {
+
+    try {
+
+        if (!req.session.user) {
+            return res.redirect('/login');
+        }
+
+        const myId = req.session.user.id;
+
+        const result = await db.query(
+
+            `SELECT
+
+                conversations.id,
+
+                u1.id AS user1_id,
+                u2.id AS user2_id,
+
+                u1.nom AS user1_nom,
+                u2.nom AS user2_nom,
+
+                u1.user_name AS user1_username,
+                u2.user_name AS user2_username,
+
+                u1.photo AS user1_photo,
+                u2.photo AS user2_photo,
+
+                u1.online AS user1_online,
+                u2.online AS user2_online
+
+            FROM conversations
+
+            JOIN users u1
+            ON conversations.user1 = u1.id
+
+            JOIN users u2
+            ON conversations.user2 = u2.id
+
+            WHERE conversations.user1=$1
+            OR conversations.user2=$1
+
+            ORDER BY conversations.id DESC`,
+
+            [myId]
         );
 
-        io.to(String(conversationId)).emit("message", {
-            conversationId,
-            sender_username,
-            message
+        res.render("conversations", {
+
+            conversations: result.rows,
+            user: req.session.user
+
         });
-    });
+
+    } catch (err) {
+
+        console.log("CONVERSATIONS ERROR:", err);
+
+        res.status(500).send("Erreur conversations");
+    }
+});
+
+
+// ================= CHAT PRIVÉ =================
+
+app.get('/chat/:username', async (req, res) => {
+
+    try {
+
+        if (!req.session.user) {
+            return res.redirect('/login');
+        }
+
+        const me = req.session.user;
+
+        // utilisateur cible
+        const userResult = await db.query(
+
+            "SELECT * FROM users WHERE user_name=$1 LIMIT 1",
+
+            [req.params.username]
+        );
+
+        if (userResult.rows.length === 0) {
+
+            return res.send("Utilisateur introuvable");
+        }
+
+        const other = userResult.rows[0];
+
+        // sécurité
+        if (other.id === me.id) {
+
+            return res.redirect('/membres');
+        }
+
+        // conversation existante ?
+        let conv = await db.query(
+
+            `SELECT * FROM conversations
+
+            WHERE
+            (user1=$1 AND user2=$2)
+
+            OR
+
+            (user1=$2 AND user2=$1)
+
+            LIMIT 1`,
+
+            [me.id, other.id]
+        );
+
+        let conversationId;
+
+        // créer conversation si inexistante
+        if (conv.rows.length > 0) {
+
+            conversationId = conv.rows[0].id;
+
+        } else {
+
+            const created = await db.query(
+
+                `INSERT INTO conversations
+                (user1, user2, created_at)
+
+                VALUES ($1,$2,NOW())
+
+                RETURNING id`,
+
+                [me.id, other.id]
+            );
+
+            conversationId = created.rows[0].id;
+        }
+
+        // récupérer messages
+        const messages = await db.query(
+
+            `SELECT *
+            FROM messages
+
+            WHERE conversation_id=$1
+
+            ORDER BY created_at ASC`,
+
+            [conversationId]
+        );
+
+        res.render("chat", {
+
+            roomId: conversationId,
+
+            messages: messages.rows,
+
+            user: me,
+
+            otherUser: other
+        });
+
+    } catch (err) {
+
+        console.log("CHAT ERROR:", err);
+
+        res.status(500).send("Erreur chat serveur");
+    }
 });
 // ================= HOME =================
 app.get('/', (req, res) => {

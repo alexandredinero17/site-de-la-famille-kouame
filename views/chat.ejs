@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Chat WhatsApp</title>
+<title>Famille Chat</title>
 
 <link rel="stylesheet"
 href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -43,15 +43,22 @@ body{
 
     padding:0 15px;
 
-    z-index:1000;
-
     border-bottom:1px solid rgba(255,255,255,.05);
+
+    z-index:999;
 }
 
 .header-left{
     display:flex;
     align-items:center;
     gap:12px;
+}
+
+.back-btn{
+
+    color:#aebac1;
+    font-size:20px;
+    text-decoration:none;
 }
 
 .header-left img{
@@ -75,9 +82,14 @@ body{
 
 .header-icons{
     display:flex;
+    align-items:center;
     gap:20px;
+}
+
+.header-icons i{
     color:#aebac1;
     font-size:18px;
+    cursor:pointer;
 }
 
 /* ================= CHAT BOX ================= */
@@ -94,10 +106,11 @@ body{
 
     overflow-y:auto;
 
-    padding:20px 15px;
+    padding:20px 12px;
 
     display:flex;
     flex-direction:column;
+
     gap:10px;
 
     background:#0b141a;
@@ -116,9 +129,9 @@ body{
 
     max-width:75%;
 
-    padding:8px 12px;
+    padding:8px 10px 6px 10px;
 
-    border-radius:8px;
+    border-radius:10px;
 
     position:relative;
 
@@ -140,7 +153,7 @@ body{
     border-top-right-radius:0;
 }
 
-/* AUTRE UTILISATEUR */
+/* AUTRES */
 
 .other{
 
@@ -153,15 +166,15 @@ body{
 
 .username{
 
-    font-size:12px;
+    display:block;
 
-    color:#53bdeb;
+    font-size:12px;
 
     margin-bottom:4px;
 
-    display:block;
-
     font-weight:bold;
+
+    color:#53bdeb;
 }
 
 .text{
@@ -170,7 +183,7 @@ body{
 
     font-size:15px;
 
-    line-height:1.4;
+    line-height:1.5;
 }
 
 .time{
@@ -179,13 +192,19 @@ body{
 
     justify-content:flex-end;
 
-    gap:4px;
+    align-items:center;
+
+    gap:5px;
 
     margin-top:4px;
 
     font-size:11px;
 
     color:#c7d0d5;
+}
+
+.seen{
+    color:#53bdeb;
 }
 
 /* ================= INPUT ================= */
@@ -270,7 +289,7 @@ body{
 /* ================= SCROLL ================= */
 
 #chat-box::-webkit-scrollbar{
-    width:6px;
+    width:5px;
 }
 
 #chat-box::-webkit-scrollbar-thumb{
@@ -302,7 +321,12 @@ body{
     }
 
     .header-icons{
-        gap:12px;
+        gap:14px;
+    }
+
+    .header-left img{
+        width:40px;
+        height:40px;
     }
 }
 
@@ -317,13 +341,21 @@ body{
 
     <div class="header-left">
 
-        <img src="<%= otherUser.photo %>">
+        <a href="/conversations" class="back-btn">
+            <i class="fa-solid fa-arrow-left"></i>
+        </a>
+
+        <img src="<%= otherUser.photo || '/images/default.png' %>">
 
         <div class="user-info">
 
-            <h3><%= otherUser.nom %></h3>
+            <h3>
+                <%= otherUser.nom %>
+            </h3>
 
-            <span>En ligne</span>
+            <span>
+                @<%= otherUser.user_name %>
+            </span>
 
         </div>
 
@@ -360,14 +392,20 @@ body{
     <div class="time">
 
         <span>
+
             <%= new Date(m.created_at).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit'
+                hour:'2-digit',
+                minute:'2-digit'
             }) %>
+
         </span>
 
         <% if(m.sender_username === user.user_name){ %>
-            ✓✓
+
+            <span class="seen">
+                ✓✓
+            </span>
+
         <% } %>
 
     </div>
@@ -426,8 +464,10 @@ function getTime(){
     const now = new Date();
 
     return now.toLocaleTimeString([], {
+
         hour:'2-digit',
         minute:'2-digit'
+
     });
 }
 
@@ -498,8 +538,8 @@ socket.on("message", (data) => {
 
             ${
                 data.sender_username === "<%= user.user_name %>"
-                ? "✓✓"
-                : ""
+                ? '<span class="seen">✓✓</span>'
+                : ''
             }
 
         </div>
