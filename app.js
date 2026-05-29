@@ -435,35 +435,51 @@ app.get('/events', (req, res) => {
 // ================= MESSAGES =================
 app.get('/conversations', async (req, res) => {
 
-
 try {
 
-    // sécurité login
     if (!req.session.user) {
         return res.redirect('/login');
     }
 
-    // 🔥 maintenant on utilise username
-    const myUsername = req.session.user.username;
+    const myId = req.session.user.id;
 
     const result = await db.query(
-        `SELECT *
-         FROM conversations
-         WHERE user1=$1 OR user2=$1
-         ORDER BY created_at DESC`,
-        [myUsername]
+
+        `SELECT 
+            conversations.id,
+            conversations.created_at,
+
+            u1.user_name AS user1_name,
+            u2.user_name AS user2_name,
+
+            u1.photo AS user1_photo,
+            u2.photo AS user2_photo
+
+        FROM conversations
+
+        JOIN users u1
+        ON conversations.user1 = u1.id
+
+        JOIN users u2
+        ON conversations.user2 = u2.id
+
+        WHERE conversations.user1=$1
+        OR conversations.user2=$1
+
+        ORDER BY conversations.created_at DESC`,
+        [myId]
     );
 
-    res.render('conversations', {
+    res.render("conversations", {
         conversations: result.rows,
         user: req.session.user
     });
 
 } catch (err) {
 
-    console.log("🔥 CONVERSATION ERROR:", err);
+    console.log(err);
 
-    res.status(500).send("Erreur conversation");
+    res.status(500).send("Erreur conversations");
 }
 
 
@@ -473,72 +489,80 @@ try {
 // ================= CHAT =================
 app.get('/chat/:username', async (req, res) => {
 
-    try {
 
-        if (!req.session.user) {
-            return res.redirect('/login');
-        }
+try {
 
-        const me = req.session.user.username;
-        const other = req.params.username;
-
-        // vérifier user
-        const userCheck = await db.query(
-            "SELECT * FROM users WHERE username=$1",
-            [other]
-        );
-
-        if (userCheck.rows.length === 0) {
-            return res.status(404).send("Utilisateur introuvable");
-        }
-
-        // créer conversation stable
-        const conv = await db.query(
-            `SELECT id FROM conversations
-             WHERE (user1=$1 AND user2=$2)
-             OR (user1=$2 AND user2=$1)
-             LIMIT 1`,
-            [me, other]
-        );
-
-        let conversationId;
-
-        if (conv.rows.length > 0) {
-            conversationId = conv.rows[0].id;
-        } else {
-            const created = await db.query(
-                `INSERT INTO conversations (user1, user2)
-                 VALUES ($1,$2)
-                 RETURNING id`,
-                [me, other]
-            );
-
-            conversationId = created.rows[0].id;
-        }
-
-        // messages
-        const messages = await db.query(
-            `SELECT * FROM messages
-             WHERE conversation_id=$1
-             ORDER BY id ASC`,
-            [conversationId]
-        );
-
-        res.render("chat", {
-            user: req.session.user,
-            otherUser: userCheck.rows[0],
-            roomId: conversationId,
-            messages: messages.rows
-        });
-
-    } catch (err) {
-console.log("🔥 CHAT ERROR FULL:", err);
-console.log(err.stack);
-res.status(500).send(err.message);
-console.log(typeof conversationId, conversationId);
-console.log("CHAT DATA:", data);
+    if (!req.session.user) {
+        return res.redirect('/login');
     }
+
+    // moi
+    const me = req.session.user;
+
+    // autre user
+    const otherResult = await db.query(
+        "SELECT * FROM users WHERE user_name=$1",
+        [req.params.username]
+    );
+
+    if (otherResult.rows.length === 0) {
+        return res.send("Utilisateur introuvable");
+    }
+
+    const other = otherResult.rows[0];
+
+    // conversation
+    let conv = await db.query(
+        `SELECT * FROM conversations
+         WHERE (user1=$1 AND user2=$2)
+         OR (user1=$2 AND user2=$1)
+         LIMIT 1`,
+        [me.id, other.id]
+    );
+
+    let conversationId;
+
+    if (conv.rows.length > 0) {
+
+        conversationId = conv.rows[0].id;
+
+    } else {
+
+        const created = await db.query(
+            `INSERT INTO conversations (user1, user2)
+             VALUES ($1,$2)
+             RETURNING id`,
+            [me.id, other.id]
+        );
+
+        conversationId = created.rows[0].id;
+    }
+
+    // messages
+    const messages = await db.query(
+        `SELECT * FROM messages
+         WHERE conversation_id=$1
+         ORDER BY id ASC`,
+        [conversationId]
+    );
+
+    res.render("chat", {
+        roomId: conversationId,
+        user: me,
+        otherUser: other,
+        messages: messages.rows
+    });
+
+} catch (err) {
+
+    console.log(err);
+
+    res.status(500).send("Erreur chat");
+}
+
+
 });
+
 // ================= LOGOUT =================
 app.get('/logout', (req, res) => {
     req.session.destroy(() => res.redirect('/'));
