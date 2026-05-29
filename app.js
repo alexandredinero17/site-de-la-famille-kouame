@@ -444,7 +444,7 @@ app.post('/delete-event/:id', isAdmin, async (req, res) => {
         res.status(500).send("Erreur suppression événement");
     }
 });
-app.get('/delete-image/:id', isAdmin, async (req, res) => {
+app.get('/delete-image/:id', async (req, res) => {
 
     try {
 
@@ -479,7 +479,8 @@ app.get('/delete-image/:id', isAdmin, async (req, res) => {
                 }
             });
         }
-
+process.on("uncaughtException", console.log);
+process.on("unhandledRejection", console.log);
     } catch (err) {
 
     console.log("💥 DELETE IMAGE ERROR COMPLET :", err);
