@@ -435,56 +435,53 @@ app.get('/events', (req, res) => {
 // ================= MESSAGES =================
 app.get('/conversations', async (req, res) => {
 
-try {
+    try {
 
-    if (!req.session.user) {
-        return res.redirect('/login');
+        if (!req.session.user) {
+            return res.redirect('/login');
+        }
+
+        const myId = req.session.user.id;
+
+        const result = await db.query(
+            `
+            SELECT
+                conversations.id,
+
+                u1.username AS user1_name,
+                u2.username AS user2_name,
+
+                u1.photo AS user1_photo,
+                u2.photo AS user2_photo
+
+            FROM conversations
+
+            JOIN users u1
+            ON conversations.user1 = u1.id
+
+            JOIN users u2
+            ON conversations.user2 = u2.id
+
+            WHERE conversations.user1=$1
+            OR conversations.user2=$1
+
+            ORDER BY conversations.created_at DESC
+            `,
+            [myId]
+        );
+
+        res.render("conversations", {
+            conversations: result.rows,
+            user: req.session.user
+        });
+
+    } catch (err) {
+
+        console.log("CONVERSATIONS ERROR:", err);
+
+        res.status(500).send("Erreur conversations");
     }
-
-    const myId = req.session.user.id;
-
-    const result = await db.query(
-
-        `SELECT
-            conversations.id,
-
-            u1.user_name AS user1_name,
-            u2.user_name AS user2_name,
-
-            u1.photo AS user1_photo,
-            u2.photo AS user2_photo
-
-        FROM conversations
-
-        JOIN users u1
-        ON conversations.user1 = u1.id
-
-        JOIN users u2
-        ON conversations.user2 = u2.id
-
-        WHERE conversations.user1=$1
-        OR conversations.user2=$1
-
-        ORDER BY conversations.created_at DESC`,
-        [myId]
-    );
-
-    res.render("conversations", {
-        conversations: result.rows,
-        user: req.session.user
-    });
-
-} catch (err) {
-
-    console.log("CONVERSATIONS ERROR:", err);
-
-    res.status(500).send("Erreur conversations");
-}
-
-
 });
-
-
 
 // ================= CHAT =================
 app.get('/chat/:username', async (req, res) => {
