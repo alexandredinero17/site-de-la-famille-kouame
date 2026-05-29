@@ -85,45 +85,7 @@ async function getOrCreateConversation(user1, user2) {
 
     return created.rows[0].id;
 }
-app.get('/chat/:userId', async (req, res) => {
 
-    try {
-
-        if (!req.session.user) {
-            return res.redirect('/login');
-        }
-
-        const myId = req.session.user.id;
-
-        const otherId = Number(req.params.userId);
-
-        // 🔥 conversation auto
-        const convId = await getOrCreateConversation(
-            myId,
-            otherId
-        );
-
-        // 🔥 messages
-        const result = await db.query(
-            `SELECT * FROM messages
-             WHERE conversation_id=$1
-             ORDER BY id ASC`,
-            [convId]
-        );
-
-        res.render('chat', {
-            roomId: convId,
-            messages: result.rows,
-            user: req.session.user
-        });
-
-    } catch (err) {
-
-        console.log("CHAT ERROR COMPLET:", err);
-
-        res.status(500).send("Erreur chat");
-    }
-});
 // ================= ADMIN =================
 function isAdmin(req, res, next) {
     if (req.session.user && req.session.user.role === "admin") return next();
@@ -484,26 +446,65 @@ app.get('/chat/:username', async (req, res) => {
 
     try {
 
+        if (!req.session.user) {
+            return res.redirect('/login');
+        }
+
         const me = req.session.user.username;
         const other = req.params.username;
 
-        const user = await db.query(
+        // vérifier user
+        const userCheck = await db.query(
             "SELECT * FROM users WHERE username=$1",
             [other]
         );
 
-        if (user.rows.length === 0) {
-            return res.send("Utilisateur introuvable");
+        if (userCheck.rows.length === 0) {
+            return res.status(404).send("Utilisateur introuvable");
         }
+
+        // créer conversation stable
+        const conv = await db.query(
+            `SELECT id FROM conversations
+             WHERE (user1=$1 AND user2=$2)
+             OR (user1=$2 AND user2=$1)
+             LIMIT 1`,
+            [me, other]
+        );
+
+        let conversationId;
+
+        if (conv.rows.length > 0) {
+            conversationId = conv.rows[0].id;
+        } else {
+            const created = await db.query(
+                `INSERT INTO conversations (user1, user2)
+                 VALUES ($1,$2)
+                 RETURNING id`,
+                [me, other]
+            );
+
+            conversationId = created.rows[0].id;
+        }
+
+        // messages
+        const messages = await db.query(
+            `SELECT * FROM messages
+             WHERE conversation_id=$1
+             ORDER BY id ASC`,
+            [conversationId]
+        );
 
         res.render("chat", {
             user: req.session.user,
-            otherUser: user.rows[0]
+            otherUser: userCheck.rows[0],
+            roomId: conversationId,
+            messages: messages.rows
         });
 
     } catch (err) {
-        console.log(err);
-        res.status(500).send("Erreur chat");
+        console.log("CHAT ERROR FULL:", err);
+        res.status(500).send("Erreur chat serveur");
     }
 });
 // ================= LOGOUT =================
