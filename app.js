@@ -484,6 +484,7 @@ app.get('/conversations', async (req, res) => {
 });
 
 // ================= CHAT =================
+// ================= CREATE / OPEN CHAT =================
 app.get('/chat/:username', async (req, res) => {
 
     try {
@@ -510,7 +511,7 @@ app.get('/chat/:username', async (req, res) => {
             [username]
         );
 
-        // utilisateur inexistant
+        // utilisateur introuvable
         if (userResult.rows.length === 0) {
 
             return res.status(404).send(
@@ -518,17 +519,17 @@ app.get('/chat/:username', async (req, res) => {
             );
         }
 
-        // utilisateur trouvé
+        // utilisateur cible
         const other = userResult.rows[0];
 
-        // empêcher chat avec soi-même
+        // empêcher discussion avec soi-même
         if (other.id === me.id) {
 
-            return res.redirect('/conversations');
+            return res.redirect('/membres');
         }
 
-        // rechercher conversation existante
-        let convResult = await db.query(
+        // vérifier conversation existante
+        let conversation = await db.query(
             `
             SELECT *
             FROM conversations
@@ -556,14 +557,14 @@ app.get('/chat/:username', async (req, res) => {
         let conversationId;
 
         // conversation déjà existante
-        if (convResult.rows.length > 0) {
+        if (conversation.rows.length > 0) {
 
-            conversationId = convResult.rows[0].id;
+            conversationId = conversation.rows[0].id;
 
         } else {
 
             // créer nouvelle conversation
-            const newConv = await db.query(
+            const created = await db.query(
                 `
                 INSERT INTO conversations
                 (
@@ -574,16 +575,16 @@ app.get('/chat/:username', async (req, res) => {
 
                 VALUES ($1,$2,NOW())
 
-                RETURNING *
+                RETURNING id
                 `,
                 [me.id, other.id]
             );
 
-            conversationId = newConv.rows[0].id;
+            conversationId = created.rows[0].id;
         }
 
         // récupérer messages
-        const messagesResult = await db.query(
+        const messages = await db.query(
             `
             SELECT *
             FROM messages
@@ -595,12 +596,12 @@ app.get('/chat/:username', async (req, res) => {
             [conversationId]
         );
 
-        // render page chat
+        // ouvrir chat
         res.render('chat', {
 
             roomId: conversationId,
 
-            messages: messagesResult.rows,
+            messages: messages.rows,
 
             user: me,
 
