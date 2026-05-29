@@ -38,44 +38,249 @@
 </header>
        <div class="container">
 
-    <% membres.forEach(membre => { %>
+ <!DOCTYPE html>
 
- <div class="card" style="display:flex;align-items:center;gap:15px;">
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Membres</title>
+    <link rel="stylesheet" href="/css/style.css">
+
+<style>
+
+body{
+    background:#0b141a;
+    color:white;
+    font-family:Arial;
+    margin:0;
+}
+
+header{
+    background:#202c33;
+    padding:20px;
+    text-align:center;
+}
+
+.container{
+    width:95%;
+    max-width:1200px;
+    margin:auto;
+    padding:20px;
+}
+
+.members-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+    gap:20px;
+}
+
+.card{
+    background:#202c33;
+    border-radius:20px;
+    padding:20px;
+    transition:0.3s;
+    box-shadow:0 5px 15px rgba(0,0,0,0.3);
+}
+
+.card:hover{
+    transform:translateY(-5px);
+}
+
+.top{
+    display:flex;
+    align-items:center;
+    gap:15px;
+    margin-bottom:15px;
+}
+
+.avatar{
+    width:90px;
+    height:90px;
+    border-radius:50%;
+    object-fit:cover;
+    border:3px solid #00a884;
+}
+
+.username{
+    color:#00a884;
+    font-size:14px;
+}
+
+.info p{
+    margin:8px 0;
+    color:#ddd;
+}
+
+.actions{
+    display:flex;
+    gap:10px;
+    margin-top:20px;
+}
+
+.btn-chat,
+.btn-wa{
+    flex:1;
+    text-align:center;
+    padding:12px;
+    border-radius:30px;
+    text-decoration:none;
+    color:white;
+    font-weight:bold;
+    transition:0.3s;
+}
+
+.btn-chat{
+    background:#00a884;
+}
+
+.btn-chat:hover{
+    background:#01916f;
+}
+
+.btn-wa{
+    background:#25D366;
+}
+
+.btn-wa:hover{
+    background:#1ebe5d;
+}
+
+.online{
+    color:#25D366;
+    font-size:13px;
+}
+
+.offline{
+    color:#aaa;
+    font-size:13px;
+}
+
+footer{
+    text-align:center;
+    padding:20px;
+    background:#202c33;
+    margin-top:40px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<header>
+    <h1>👨‍👩‍👧‍👦 Nos Membres</h1>
+</header>
+
+<div class="container">
+
+<div class="members-grid">
+
+<% membres.forEach(membre => { %>
+
+<div class="card">
+
+    
+<div class="top">
 
     <img class="avatar"
          src="<%= membre.photo || '/images/default.png' %>?t=<%= Date.now() %>">
 
-            <h2><%= membre.nom %></h2>
+    <div>
 
-            <p><strong>Email :</strong> <%= membre.email %></p>
+        <h2><%= membre.nom %></h2>
 
-            <p><strong>Téléphone :</strong> <%=membre.telephone %></p>
+        <div class="username">
+            @<%= membre.username %>
+        </div>
 
-            <p><strong>Profession :</strong> <%= membre.profession %></p>
+        <% if(membre.online){ %>
 
-            <p><strong>Branche :</strong> <%= membre.branche %></p>
+            <div class="online">
+                🟢 En ligne
+            </div>
 
-            <p><%= membre.description %></p>
-      
-      
-     <div class="actions">
+        <% } else { %>
 
-        <!-- 💬 CHAT INTERNE -->
-        <a class="btn-chat" href="/chat/<%= user.username %>">
-            💬 Discuter
-        </a>
+            <div class="offline">
+                ⚫ Hors ligne
+            </div>
 
-        <!-- 📲 WHATSAPP -->
-        <% if(user.telephone) { %>
-        <a class="btn-wa"
-           target="_blank"
-           href="https://wa.me/<%= user.telephone.replace('+','') %>">
-            📲 WhatsApp
-        </a>
         <% } %>
 
     </div>
+
+</div>
+
+<div class="info">
+
+    <p>
+        <strong>Email :</strong>
+        <%= membre.email %>
+    </p>
+
+    <p>
+        <strong>Téléphone :</strong>
+        <%= membre.telephone %>
+    </p>
+
+    <p>
+        <strong>Profession :</strong>
+        <%= membre.profession %>
+    </p>
+
+    <p>
+        <strong>Branche :</strong>
+        <%= membre.branche %>
+    </p>
+
+    <p>
+        <%= membre.description %>
+    </p>
+
+</div>
+
+<div class="actions">
+
+    <!-- 💬 CHAT INTERNE -->
+    <a class="btn-chat"
+       href="/chat/<%= membre.username %>">
+
+        💬 Discuter
+
+    </a>
+
+    <!-- 📲 WHATSAPP -->
+    <% if(membre.telephone){ %>
+
+    <a class="btn-wa"
+       target="_blank"
+       href="https://wa.me/<%= membre.telephone.replace(/[^0-9]/g,'') %>">
+
+        📲 WhatsApp
+
+    </a>
+
+    <% } %>
+
+</div>
+
+
+</div>
+
 <% }) %>
+
+</div>
+
+</div>
+
+<footer>
+    LA GRANDE FAMILLE KOUAME
+</footer>
+
+</body>
+</html>
+
 <footer>
     LA GRANDE FAMILLE KOUAME
 </footer>
