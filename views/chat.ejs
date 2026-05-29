@@ -104,7 +104,7 @@ button {
 
 <div id="input">
     <input id="msg" placeholder="Message..." />
-    <button onclick="send()">Envoyer</button>
+    <button onclick="sendMessage()">Envoyer</button>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -115,35 +115,24 @@ const socket = io();
 socket.emit("online", "<%= user.id %>");
 socket.emit("join", "<%= roomId %>");
 
-socket.on("user_online", (userId) => {
-    console.log("User online:", userId);
-});
-
-function send() {
-
-    const msg = document.getElementById("msg").value;
+function sendMessage() {
 
     socket.emit("message", {
         conversationId: "<%= roomId %>",
-        senderId: "<%= user.id %>",
-        message: msg
+        sender_username: "<%= user.username %>",
+        message: document.getElementById("msg").value
     });
-
-    document.getElementById("msg").value = "";
 }
 
 socket.on("message", (data) => {
 
-    const div = document.createElement("div");
+    const chat = document.getElementById("chat-box");
 
-    div.className = "msg";
-
-    div.innerHTML = `
-        <b>${data.senderId}</b><br>
-        ${data.message}
+    chat.innerHTML += `
+        <div>
+            <b>@${data.sender_username}</b>: ${data.message}
+        </div>
     `;
-
-    document.getElementById("chat-box").appendChild(div);
 });
 </script>
 

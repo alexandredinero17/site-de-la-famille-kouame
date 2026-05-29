@@ -62,7 +62,6 @@ app.use(session({
         maxAge: 1000 * 60 * 60 * 24 * 30
     }
 }));
-
 async function getOrCreateConversation(user1, user2) {
 
     const existing = await db.query(
@@ -86,7 +85,6 @@ async function getOrCreateConversation(user1, user2) {
 
     return created.rows[0].id;
 }
-
 app.get('/chat/:userId', async (req, res) => {
 
     try {
@@ -135,68 +133,54 @@ function isAdmin(req, res, next) {
 // ================= SOCKET.IO =================
 io.on("connection", (socket) => {
 
-    // 🟢 ONLINE STATUS
-    socket.on("online", async (userId) => {
+    // 🟢 ONLINE
+    socket.on("online", async (username) => {
 
         await db.query(
-            "UPDATE users SET online=true WHERE id=$1",
-            [userId]
+            "UPDATE users SET online=true WHERE username=$1",
+            [username]
         );
 
-        io.emit("user_online", userId);
+        io.emit("user_online", username);
     });
 
-    // 💬 JOIN ROOM
+    // 💬 JOIN ROOM = conversationId
     socket.on("join", (conversationId) => {
-        socket.join(conversationId);
+
+        if (!conversationId) return;
+
+        socket.join(String(conversationId));
     });
 
-    // ✉️ SEND MESSAGE
+    // ✉️ MESSAGE
     socket.on("message", async (data) => {
 
-        const { conversationId, senderId, message } = data;
+        const {
+            conversationId,
+            sender_username,
+            message
+        } = data;
 
-        // save message
+        if (!conversationId || !sender_username || !message) return;
+
         const result = await db.query(
-            `INSERT INTO messages (conversation_id, sender_id, message)
-             VALUES ($1,$2,$3) RETURNING id`,
-            [conversationId, senderId, message]
+            `INSERT INTO messages (conversation_id, sender_username, message)
+             VALUES ($1,$2,$3)
+             RETURNING id`,
+            [conversationId, sender_username, message]
         );
 
         const messageId = result.rows[0].id;
 
-        // status auto created
-        await db.query(
-            `INSERT INTO message_status (message_id, user_id, status)
-             VALUES ($1,$2,'sent')`,
-            [messageId, senderId]
-        );
-
-        // broadcast
-        io.to(conversationId).emit("message", {
+        io.to(String(conversationId)).emit("message", {
             id: messageId,
             conversationId,
-            senderId,
-            message,
-            status: "sent"
+            sender_username,
+            message
         });
     });
 
-    // 👁️ MESSAGE SEEN
-    socket.on("seen", async ({ messageId, userId }) => {
-
-        await db.query(
-            `UPDATE message_status 
-             SET status='seen'
-             WHERE message_id=$1 AND user_id=$2`,
-            [messageId, userId]
-        );
-
-        io.emit("message_seen", { messageId, userId });
-    });
-
 });
-
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
 
@@ -291,7 +275,7 @@ app.post('/register', upload.single('photo'), async (req, res) => {
 
     try {
 
-        const { nom, email, telephone, profession, branche, description, password } = req.body;
+        const { nom, username, email, telephone, profession, branche, description, password } = req.body;
 
         // 🔒 validation minimale
         if (!nom || !email || !password) {
@@ -321,10 +305,11 @@ app.post('/register', upload.single('photo'), async (req, res) => {
         // 💾 insert user
         await db.query(
             `INSERT INTO users 
-            (nom, email, telephone, profession, branche, description, password, photo)
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+            (nom, username, email, telephone, profession, branche, description, password, photo)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
             [
                 nom,
+                username,
                 email,
                 telephone || null,
                 profession || null,
@@ -335,7 +320,7 @@ app.post('/register', upload.single('photo'), async (req, res) => {
             ]
         );
 
-        return res.redirect('/login');
+        return res.redirect('/dashboard');
 
     } catch (err) {
 
@@ -352,7 +337,7 @@ app.post('/login', async (req, res) => {
     try {
 
         const result = await db.query(
-            "SELECT id, nom, email, password, role FROM users WHERE email = $1 LIMIT 1",
+            "SELECT id, nom, email, password, role FROM users WHERE email = $1 or username = $1 LIMIT 1",
             [email]
         );
 
@@ -495,36 +480,29 @@ app.get('/events', (req, res) => {
 
 
 // ================= CHAT =================
-app.get('/chat/user/:id', async (req, res) => {
+app.get('/chat/:username', async (req, res) => {
 
     try {
 
-        const myId = req.session.user.id;
+        const me = req.session.user.username;
+        const other = req.params.username;
 
-        const otherId = req.params.userId;
-
-        const convId = await getOrCreateConversation(
-            myId,
-            otherId
+        const user = await db.query(
+            "SELECT * FROM users WHERE username=$1",
+            [other]
         );
 
-        const messages = await db.query(
-            `SELECT * FROM messages
-             WHERE conversation_id=$1
-             ORDER BY id ASC`,
-            [convId]
-        );
+        if (user.rows.length === 0) {
+            return res.send("Utilisateur introuvable");
+        }
 
-        res.render('chat', {
-            roomId: convId,
-            messages: messages.rows,
-            user: req.session.user
+        res.render("chat", {
+            user: req.session.user,
+            otherUser: user.rows[0]
         });
 
     } catch (err) {
-
-        console.log("CHAT ERROR:", err);
-
+        console.log(err);
         res.status(500).send("Erreur chat");
     }
 });

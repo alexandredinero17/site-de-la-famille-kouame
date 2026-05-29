@@ -32,9 +32,9 @@
 
             <p><%= membre.description %></p>
 
-           <a href="/chat/user/<%= membre.id %>">
-            💬 Discuter
-            </a>
+          <a href="/chat/<%= membre.username %>">
+    💬 Chat avec @<%= membre.username %>
+</a>
         </div>
 
     <% }) %>
