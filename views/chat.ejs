@@ -115,22 +115,18 @@ button {
 
 const socket = io();
 
-socket.emit("joinRoom", "<%= roomId %>");
+socket.emit("join", "<%= roomId %>");
 
-function send() {
+socket.on("message", (data) => {
 
-    const msg = document.getElementById("msg").value;
+    const div = document.createElement("div");
 
-    if (!msg.trim()) return;
+    div.className = "msg";
 
-    socket.emit("sendMessage", {
-        roomId: "<%= roomId %>",
-        sender: "<%= user.nom %>",
-        message: msg
-    });
+    div.innerHTML = `<b>${data.sender}</b><br>${data.message}`;
 
-    document.getElementById("msg").value = "";
-}
+    document.getElementById("chat-box").appendChild(div);
+});
 
 socket.on("newMessage", (data) => {
 

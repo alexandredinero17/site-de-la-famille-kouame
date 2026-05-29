@@ -72,33 +72,26 @@ function isAdmin(req, res, next) {
 // ================= SOCKET.IO =================
 io.on("connection", (socket) => {
 
-    console.log("User connecté");
-
-    socket.on("join", (conversationId) => {
-        socket.join(conversationId);
+    socket.on("join", (roomId) => {
+        socket.join(roomId);
     });
 
     socket.on("message", async (data) => {
 
         const { conversationId, sender, message } = data;
 
-        try {
-            await db.query(
-                `INSERT INTO messages (conversation_id, sender, message, created_at)
-                 VALUES ($1, $2, $3, NOW())`,
-                [conversationId, sender, message]
-            );
+        await db.query(
+            `INSERT INTO messages (conversation_id, sender, message)
+             VALUES ($1,$2,$3)`,
+            [conversationId, sender, message]
+        );
 
-            io.to(conversationId).emit("message", {
-                sender,
-                message,
-                time: new Date()
-            });
-
-        } catch (err) {
-            console.log("CHAT ERROR:", err);
-        }
+        io.to(conversationId).emit("message", {
+            sender,
+            message
+        });
     });
+
 });
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -114,10 +107,10 @@ const upload = multer({
     storage,
     limits: { fileSize: 5 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
-        if (["image/jpeg", "image/png", "image/jpg"].includes(file.mimetype)) {
+        if (file.mimetype.startsWith("image/")) {
             cb(null, true);
         } else {
-            cb(new Error("Image invalide"));
+            cb(new Error("Fichier non valide"));
         }
     }
 });
@@ -206,7 +199,9 @@ app.post('/register', upload.single('photo'), async (req, res) => {
             password
         } = req.body;
 
-        const photo = req.file ? "/uploads/" + req.file.filename : null;
+        const photo = req.file
+            ? "/uploads/" + req.file.filename
+            : "/images/default.png";
 
         const hash = await bcrypt.hash(password, 10);
 
@@ -226,11 +221,13 @@ app.post('/register', upload.single('photo'), async (req, res) => {
             ]
         );
 
-        res.redirect('/login');
+        res.redirect('/dashboard');
 
-    } catch (err) {
-        console.log(err);
-        res.status(500).send("Erreur inscription");
+       } catch (err) {
+
+        console.log("REGISTER ERROR:", err);
+
+        res.status(500).send("Erreur interne du serveur création compte");
     }
 });
 
@@ -268,67 +265,47 @@ app.post('/login', async (req, res) => {
     }
     app.set('trust proxy', 1);
 });
-app.post('/profile/photo', upload.single('photo'), async (req, res) => {
-
-    if (!req.session.user) {
-        return res.redirect('/login');
-    }
+app.post("/profile/photo", upload.single("photo"), async (req, res) => {
 
     try {
-
-        if (!req.file) {
-            return res.send("Aucune image envoyée");
-        }
 
         const photo = "/uploads/" + req.file.filename;
 
         await db.query(
-            "UPDATE users SET photo = $1 WHERE id = $2",
+            "UPDATE users SET photo=$1 WHERE id=$2",
             [photo, req.session.user.id]
         );
 
-        // mise à jour session (IMPORTANT)
         req.session.user.photo = photo;
 
-        res.redirect('/dashboard');
+        res.redirect("/dashboard");
 
     } catch (err) {
-        console.log("PHOTO UPDATE ERROR:", err);
-        res.status(500).send("Erreur mise à jour photo");
+        console.log(err);
+        res.status(500).send("Erreur photo profil");
     }
 });
-app.post('/upload-image', upload.single('image'), async (req, res) => {
-
-    if (!req.session.user) {
-        return res.redirect('/login');
-    }
+app.post("/upload-image", upload.single("image"), async (req, res) => {
 
     try {
 
-        if (!req.file) {
-            return res.status(400).send("Aucune image envoyée");
-        }
-
-        const imagePath = "/uploads/" + req.file.filename;
+        const image = "/uploads/" + req.file.filename;
 
         await db.query(
-            `INSERT INTO galerie (user_name, image, description, date)
-             VALUES ($1, $2, $3, $4)`,
+            `INSERT INTO galerie (user_name, image, description)
+             VALUES ($1,$2,$3)`,
             [
                 req.session.user.nom,
-                imagePath,
-                req.body.description || "",
-                new Date()
+                image,
+                req.body.description || ""
             ]
         );
 
-        res.redirect('/galerie');
+        res.redirect("/galerie");
 
     } catch (err) {
-
-        console.log("GALLERY UPLOAD ERROR:", err);
-
-        res.status(500).send("Erreur upload galerie");
+        console.log(err);
+        res.status(500).send("Erreur upload image");
     }
 });
 // ================= DASHBOARD =================
