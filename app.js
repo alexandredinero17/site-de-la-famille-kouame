@@ -27,14 +27,12 @@ io.on('connection', (socket) => {
 
     console.log('Utilisateur connecté');
 
-    // rejoindre une conversation
     socket.on('join_conversation', (conversationId) => {
 
         socket.join('conv_' + conversationId);
 
     });
 
-    // envoyer message
     socket.on('send_message', async (data) => {
 
         try {
@@ -45,7 +43,10 @@ io.on('connection', (socket) => {
                 message
             } = data;
 
-            // sauvegarde message
+            if (!message || message.trim() === '') {
+                return;
+            }
+
             const result = await db.query(
                 `
                 INSERT INTO messages
@@ -66,7 +67,6 @@ io.on('connection', (socket) => {
 
             const newMessage = result.rows[0];
 
-            // envoyer à toute la room
             io.to('conv_' + conversation_id)
             .emit('receive_message', {
 
@@ -77,17 +77,15 @@ io.on('connection', (socket) => {
 
             });
 
-        } catch(err){
+        } catch (err) {
 
-            console.log(err);
+            console.log("ERREUR SOCKET :", err);
 
         }
 
     });
 
 });
-
-
 
 // ================= SECURITY =================
 app.use(helmet({ contentSecurityPolicy: false }));
@@ -603,20 +601,18 @@ app.get('/events', (req, res) => {
 // ================= MESSAGES =================
 app.get('/messages', async (req, res) => {
 
-    if(!req.session.user){
-
-        return res.redirect('/login');
-
-    }
-
     try {
 
-        const result = await db.query(
+        if (!req.session.user) {
+            return res.redirect('/login');
+        }
 
-            `
+        const currentUserId = req.session.user.id;
+
+        const sql = `
             SELECT
                 c.id AS conversation_id,
-                u.id,
+                u.id AS user_id,
                 u.nom,
                 u.username,
                 u.photo,
@@ -624,22 +620,22 @@ app.get('/messages', async (req, res) => {
 
             FROM conversations c
 
-            JOIN conversation_users cu1
-            ON cu1.conversation_id = c.id
+            INNER JOIN conversation_users cu1
+                ON cu1.conversation_id = c.id
 
-            JOIN conversation_users cu2
-            ON cu2.conversation_id = c.id
+            INNER JOIN conversation_users cu2
+                ON cu2.conversation_id = c.id
 
-            JOIN users u
-            ON u.id = cu2.user_id
+            INNER JOIN users u
+                ON u.id = cu2.user_id
 
             WHERE cu1.user_id = $1
             AND cu2.user_id != $1
-            `,
 
-            [req.session.user.id]
+            ORDER BY c.id DESC
+        `;
 
-        );
+        const result = await db.query(sql, [currentUserId]);
 
         const conversations = result.rows.map(row => ({
 
@@ -647,7 +643,7 @@ app.get('/messages', async (req, res) => {
 
             other: {
 
-                id: row.id,
+                id: row.user_id,
                 nom: row.nom,
                 username: row.username,
                 photo: row.photo,
@@ -664,11 +660,11 @@ app.get('/messages', async (req, res) => {
 
         });
 
-    } catch(err){
+    } catch (err) {
 
-        console.log(err);
+        console.log("ERREUR CONVERSATIONS :", err);
 
-        res.send("Erreur conversations");
+        res.status(500).send("Erreur conversations");
 
     }
 
@@ -678,82 +674,72 @@ app.get('/messages', async (req, res) => {
 // ================= PRIVATE CHAT =================
 app.get('/chat/:username', async (req, res) => {
 
-    if(!req.session.user){
-
-        return res.redirect('/login');
-
-    }
-
     try {
+
+        if (!req.session.user) {
+            return res.redirect('/login');
+        }
+
+        const currentUser = req.session.user;
 
         const username = req.params.username;
 
-        // utilisateur
+        // utilisateur cible
         const userResult = await db.query(
-
             `
             SELECT *
             FROM users
             WHERE username = $1
             LIMIT 1
             `,
-
             [username]
-
         );
 
-        if(userResult.rows.length === 0){
-
+        // utilisateur introuvable
+        if (userResult.rows.length === 0) {
             return res.send("Utilisateur introuvable");
-
         }
 
         const membre = userResult.rows[0];
 
-        // empêcher chat avec soi-même
-        if(membre.id === req.session.user.id){
-
+        // empêche de parler avec soi-même
+        if (membre.id === currentUser.id) {
             return res.redirect('/membres');
-
         }
 
-        // conversation existante ?
-        let convResult = await db.query(
-
+        // recherche conversation existante
+        const convResult = await db.query(
             `
             SELECT c.id
 
             FROM conversations c
 
-            JOIN conversation_users cu1
-            ON cu1.conversation_id = c.id
+            INNER JOIN conversation_users cu1
+                ON cu1.conversation_id = c.id
 
-            JOIN conversation_users cu2
-            ON cu2.conversation_id = c.id
+            INNER JOIN conversation_users cu2
+                ON cu2.conversation_id = c.id
 
             WHERE cu1.user_id = $1
             AND cu2.user_id = $2
 
             LIMIT 1
             `,
-
             [
-                req.session.user.id,
+                currentUser.id,
                 membre.id
             ]
-
         );
 
         let conversationId;
 
-        // créer conversation
-        if(convResult.rows.length === 0){
+        // créer conversation si inexistante
+        if (convResult.rows.length === 0) {
 
             const newConv = await db.query(
-
                 `
-                INSERT INTO conversations
-                DEFAULT VALUES
+                INSERT INTO conversations(created_at)
+                VALUES(NOW())
                 RETURNING id
                 `
             );
@@ -761,22 +747,21 @@ app.get('/chat/:username', async (req, res) => {
             conversationId = newConv.rows[0].id;
 
             await db.query(
-
                 `
                 INSERT INTO conversation_users
                 (
                     conversation_id,
                     user_id
                 )
-                VALUES ($1,$2),($1,$3)
+                VALUES
+                ($1,$2),
+                ($1,$3)
                 `,
-
                 [
                     conversationId,
-                    req.session.user.id,
+                    currentUser.id,
                     membre.id
                 ]
-
             );
 
         } else {
@@ -785,34 +770,31 @@ app.get('/chat/:username', async (req, res) => {
 
         }
 
-        // récupérer messages
+        // récupération messages
         const messagesResult = await db.query(
-
             `
             SELECT *
             FROM messages
             WHERE conversation_id = $1
             ORDER BY created_at ASC
             `,
-
             [conversationId]
-
         );
 
         res.render('chat', {
 
             membre,
-            user: req.session.user,
+            user: currentUser,
             conversationId,
             messages: messagesResult.rows
 
         });
 
-    } catch(err){
+    } catch (err) {
 
-        console.log(err);
+        console.log("ERREUR CHAT :", err);
 
-        res.send("Erreur chat");
+        res.status(500).send("Erreur interne du serveur");
 
     }
 
