@@ -101,10 +101,31 @@ button{
 
 }
 
+#notif-count{
+
+    background:red;
+    color:white;
+
+    border-radius:50%;
+
+    padding:4px 8px;
+
+    font-size:12px;
+
+    display:none;
+
+}
 </style>
 
 </head>
 <div id="notif-box"></div>
+<a href="/conversations">
+
+    💬 Conversations
+
+    <span id="notif-count">0</span>
+
+</a>
 <body>
 
 <div class="header">
@@ -195,39 +216,46 @@ function sendMessage(){
 
 socket.on('new_notification', (data) => {
 
-    const div = document.createElement('div');
+    notifCount++;
 
-    div.className = 'notification';
+    const badge =
+        document.getElementById('notif-count');
 
-    div.innerHTML = `
-        <strong>Nouveau message</strong><br>
-        ${data.message}
-    `;
+    badge.style.display = 'inline-block';
 
-    document
-    .getElementById('notif-box')
-    .appendChild(div);
+    badge.innerText = notifCount;
 
-    // son
-    const audio = new Audio(
-        'public/sounds/universfield-new-notification-057-494255.mp3'
-    );
+    // notification navigateur
+    if (Notification.permission === 'granted') {
 
-    audio.play();
+        new Notification(
+            'Nouveau message',
+            {
+                body: data.message
+            }
+        );
+    }
+   // son
+   const audio = new Audio(
+    '/sounds/song.mp3'
+);
 
-    // suppression auto
-    setTimeout(() => {
+audio.volume = 1;
 
-        div.remove();
+audio.play().catch(err => {
 
-    }, 5000);
+    console.log("Erreur audio :", err);
 
 });
 
-    input.value = '';
+});
+
+// demander permission
+if(Notification.permission !== 'granted'){
+
+    Notification.requestPermission();
 
 }
-
 socket.on('receive_message', (data) => {
 
     const div = document.createElement('div');
@@ -243,6 +271,7 @@ socket.on('receive_message', (data) => {
     .appendChild(div);
 
 });
+}
 
 </script>
 
