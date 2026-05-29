@@ -206,14 +206,12 @@ fileFilter: (req, file, cb) => {
 // ================= ADMIN =================
 
 // ================= CONVERSATIONS =================
-app.get('/messages', async (req, res) => {
+app.get('/conversations', async (req, res) => {
 
     try {
 
         if (!req.session.user) {
-
             return res.redirect('/login');
-
         }
 
         const currentUserId = req.session.user.id;
@@ -277,7 +275,7 @@ app.get('/messages', async (req, res) => {
 
     } catch (err) {
 
-        console.log("ERREUR CONVERSATIONS :", err);
+        console.log(err);
 
         res.send("Erreur conversations");
 
