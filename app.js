@@ -433,6 +433,41 @@ app.get('/events', (req, res) => {
 });
 
 // ================= MESSAGES =================
+app.get('/conversations', async (req, res) => {
+
+
+try {
+
+    // sécurité login
+    if (!req.session.user) {
+        return res.redirect('/login');
+    }
+
+    // 🔥 maintenant on utilise username
+    const myUsername = req.session.user.username;
+
+    const result = await db.query(
+        `SELECT *
+         FROM conversations
+         WHERE user1=$1 OR user2=$1
+         ORDER BY created_at DESC`,
+        [myUsername]
+    );
+
+    res.render('conversations', {
+        conversations: result.rows,
+        user: req.session.user
+    });
+
+} catch (err) {
+
+    console.log("🔥 CONVERSATION ERROR:", err);
+
+    res.status(500).send("Erreur conversation");
+}
+
+
+});
 
 
 // ================= CHAT =================

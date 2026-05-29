@@ -195,24 +195,71 @@ a{
 
         <!-- CHAT LIST -->
         <div class="chat-list">
-<h2>Conversations</h2>
+
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Conversations</title>
+
+<style>
+
+body{
+    font-family:Arial;
+    background:#111b21;
+    color:white;
+    margin:0;
+}
+
+.header{
+    background:#202c33;
+    padding:15px;
+    font-size:22px;
+}
+
+.conv{
+    padding:15px;
+    border-bottom:1px solid #2a3942;
+}
+
+.conv a{
+    color:white;
+    text-decoration:none;
+    font-size:18px;
+}
+
+.conv:hover{
+    background:#202c33;
+}
+
+</style>
+
+</head>
+<body>
+
+<div class="header">
+    💬 Conversations
+</div>
 
 <% conversations.forEach(c => { %>
 
-    <div style="padding:10px;background:#222;margin:5px;">
-        <a href="/chat/<%= c.id %>">
-            Chat avec <%= c.user1 === user ? c.user2 : c.user1 %>
-        </a>
-    </div>
+<div class="conv">
+
+    <% 
+    const otherUser =
+        c.user1 === user.username
+        ? c.user2
+        : c.user1;
+    %>
+
+    <a href="/chat/<%= otherUser %>">
+        @<%= otherUser %>
+    </a>
+
+</div>
 
 <% }) %>
-        </div>
-
-    </div>
-
-    <div class="empty">
-        Sélectionnez une conversation pour voir les messages
-    </div>
 
 </body>
 </html>
