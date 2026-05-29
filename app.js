@@ -95,48 +95,52 @@ function isAdmin(req, res, next) {
 // ================= SOCKET.IO =================
 io.on("connection", (socket) => {
 
-    // 🟢 ONLINE
-    socket.on("online", async (username) => {
-
-        await db.query(
-            "UPDATE users SET online=true WHERE username=$1",
-            [username]
-        );
-
-        io.emit("user_online", username);
-    });
-
-    // 💬 JOIN ROOM = conversationId
+    // JOIN ROOM
     socket.on("join", (conversationId) => {
 
-        if (!conversationId) return;
+        // 🔥 sécurité : doit être un nombre
+        if (isNaN(conversationId)) {
+            console.log("❌ ROOM INVALID:", conversationId);
+            return;
+        }
 
         socket.join(String(conversationId));
     });
 
-    // ✉️ MESSAGE
-   socket.on("message", async (data) => {
+    // MESSAGE
+    socket.on("message", async (data) => {
 
-    const { conversationId, sender_username, message } = data;
+        const {
+            conversationId,
+            sender_username,
+            message
+        } = data;
 
-    if (!Number(conversationId)) {
-        console.log("❌ conversationId invalide:", conversationId);
-        return;
-    }
+        // 🚨 FIX CRITIQUE ICI
+        if (isNaN(conversationId)) {
+            console.log("❌ conversationId invalide:", conversationId);
+            return;
+        }
 
-    const result = await db.query(
-        `INSERT INTO messages (conversation_id, sender_username, message)
-         VALUES ($1,$2,$3)`,
-        [conversationId, sender_username, message]
-    );
+        const result = await db.query(
+            `INSERT INTO messages (conversation_id, sender_username, message)
+             VALUES ($1,$2,$3)
+             RETURNING id`,
+            [
+                Number(conversationId),
+                sender_username,
+                message
+            ]
+        );
 
-    io.to(String(conversationId)).emit("message", {
-        conversationId,
-        sender_username,
-        message
+        io.to(String(conversationId)).emit("message", {
+            id: result.rows[0].id,
+            conversationId,
+            sender_username,
+            message
+        });
     });
-    });
-    
+
 });
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
