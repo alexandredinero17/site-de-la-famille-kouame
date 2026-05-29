@@ -235,112 +235,126 @@ app.get('/conversations', async (req, res) => {
 
     try {
 
-        if (!req.session.user) {
-            return res.redirect('/login');
-        }
+        if (!req.session.user) return res.redirect('/login');
 
         const myId = req.session.user.id;
 
-        const result = await db.query(
+        const result = await db.query(`
+            SELECT
+                c.id,
+                u1.id AS u1_id,
+                u2.id AS u2_id,
+                u1.username AS u1_username,
+                u2.username AS u2_username,
+                u1.nom AS u1_nom,
+                u2.nom AS u2_nom,
+                u1.photo AS u1_photo,
+                u2.photo AS u2_photo
+            FROM conversations c
+            JOIN users u1 ON c.user1 = u1.id
+            JOIN users u2 ON c.user2 = u2.id
+            WHERE c.user1=$1 OR c.user2=$1
+            ORDER BY c.created_at DESC
+        `, [myId]);
 
-            `SELECT
+        const convs = result.rows.map(c => {
 
-                conversations.id,
+            const isMeUser1 = c.u1_id === myId;
 
-                u1.id AS user1_id,
-                u2.id AS user2_id,
-
-                u1.nom AS user1_nom,
-                u2.nom AS user2_nom,
-
-                u1.user_name AS user1_username,
-                u2.user_name AS user2_username,
-
-                u1.photo AS user1_photo,
-                u2.photo AS user2_photo,
-
-                u1.online AS user1_online,
-                u2.online AS user2_online
-
-            FROM conversations
-
-            JOIN users u1
-            ON conversations.user1 = u1.id
-
-            JOIN users u2
-            ON conversations.user2 = u2.id
-
-            WHERE conversations.user1=$1
-            OR conversations.user2=$1
-
-            ORDER BY conversations.id DESC`,
-
-            [myId]
-        );
+            return {
+                id: c.id,
+                other: isMeUser1 ? {
+                    id: c.u2_id,
+                    username: c.u2_username,
+                    nom: c.u2_nom,
+                    photo: c.u2_photo
+                } : {
+                    id: c.u1_id,
+                    username: c.u1_username,
+                    nom: c.u1_nom,
+                    photo: c.u1_photo
+                }
+            };
+        });
 
         res.render("conversations", {
-
-            conversations: result.rows,
+            conversations: convs,
             user: req.session.user
-
         });
 
     } catch (err) {
-
-        console.log("CONVERSATIONS ERROR:", err);
-
+        console.log(err);
         res.status(500).send("Erreur conversations");
     }
 });
-
 
 // ================= CHAT PRIVÉ =================
 
 app.get('/chat/:username', async (req, res) => {
 
-    const me = req.session.user;
+    try {
 
-    const other = await db.query(
-        "SELECT * FROM users WHERE user_name=$1",
-        [req.params.username]
-    );
+        if (!req.session.user) return res.redirect('/login');
 
-    if (!other.rows.length) return res.send("User not found");
+        const me = req.session.user;
 
-    const u = other.rows[0];
+        // 1. trouver receiver
+        const result = await db.query(
+            "SELECT * FROM users WHERE username=$1",
+            [req.params.username]
+        );
 
-    let conv = await db.query(`
-        SELECT * FROM conversations
-        WHERE (user1=$1 AND user2=$2)
-        OR (user1=$2 AND user2=$1)
-    `, [me.id, u.id]);
+        if (result.rows.length === 0) {
+            return res.send("Utilisateur introuvable");
+        }
 
-    let conversationId;
+        const receiver = result.rows[0];
 
-    if (conv.rows.length) {
-        conversationId = conv.rows[0].id;
-    } else {
-        let created = await db.query(`
-            INSERT INTO conversations(user1,user2)
-            VALUES ($1,$2)
-            RETURNING id
-        `, [me.id, u.id]);
+        if (receiver.id === me.id) {
+            return res.redirect('/conversations');
+        }
 
-        conversationId = created.rows[0].id;
+        // 2. récupérer ou créer conversation
+        let conv = await db.query(`
+            SELECT * FROM conversations
+            WHERE (user1=$1 AND user2=$2)
+            OR (user1=$2 AND user2=$1)
+            LIMIT 1
+        `, [me.id, receiver.id]);
+
+        let conversationId;
+
+        if (conv.rows.length > 0) {
+            conversationId = conv.rows[0].id;
+        } else {
+            const created = await db.query(`
+                INSERT INTO conversations (user1, user2)
+                VALUES ($1,$2)
+                RETURNING id
+            `, [me.id, receiver.id]);
+
+            conversationId = created.rows[0].id;
+        }
+
+        // 3. charger messages
+        const messages = await db.query(`
+            SELECT * FROM messages
+            WHERE conversation_id=$1
+            ORDER BY id ASC
+        `, [conversationId]);
+
+        // 4. render chat
+        res.render('chat', {
+            user: me,
+            receiver: receiver,
+            roomId: conversationId,
+            messages: messages.rows
+        });
+
+    } catch (err) {
+        console.log("CHAT ERROR:", err);
+        res.status(500).send("Erreur chat serveur");
     }
-
-    const messages = await db.query(`
-        SELECT * FROM messages
-        WHERE conversation_id=$1
-        ORDER BY created_at ASC
-    `, [conversationId]);
-
-    res.render("chat", {
-        roomId: conversationId,
-        messages: messages.rows,
-        user: me,
-        otherUser: u
-    });
 });
 // ================= HOME =================
 app.get('/', (req, res) => {
@@ -377,6 +391,39 @@ app.post('/post', async (req, res) => {
 
         res.status(500).send("Erreur publication");
         console.log(err);
+    }
+});
+app.post('/delete-post/:id', async (req, res) => {
+
+    try {
+
+        if (!req.session.user) {
+            return res.redirect('/login');
+        }
+
+        const postId = req.params.id;
+
+        // option sécurité : vérifier propriétaire
+        const post = await db.query(
+            "SELECT * FROM posts WHERE id=$1",
+            [postId]
+        );
+
+        if (!post.rows.length) {
+            return res.send("Post introuvable");
+        }
+
+        await db.query(
+            "DELETE FROM posts WHERE id=$1",
+            [postId]
+        );
+
+        res.redirect('/dashboard');
+
+    } catch (err) {
+
+        console.log(err);
+        res.status(500).send("Erreur suppression post");
     }
 });
 

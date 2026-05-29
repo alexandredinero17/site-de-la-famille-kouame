@@ -1,273 +1,45 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Messages</title>
-
-<style>
-
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-}
-
-body{
-    font-family:Arial, sans-serif;
-    background:#0b141a;
-    color:white;
-    height:100vh;
-    overflow:hidden;
-}
-
-/* CONTAINER */
-.container{
-    display:flex;
-    height:100vh;
-}
-
-/* SIDEBAR */
-.sidebar{
-    width:380px;
-    background:#111b21;
-    border-right:1px solid #222d34;
-    display:flex;
-    flex-direction:column;
-}
-
-/* HEADER */
-.sidebar-header{
-    padding:15px;
-    background:#202c33;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-}
-
-.sidebar-header h2{
-    font-size:20px;
-}
-
-/* SEARCH */
-.search-box{
-    padding:10px;
-    background:#111b21;
-}
-
-.search-box input{
-    width:100%;
-    padding:12px;
-    border:none;
-    border-radius:10px;
-    background:#202c33;
-    color:white;
-    outline:none;
-}
-
-/* CHAT LIST */
-.chat-list{
-    flex:1;
-    overflow-y:auto;
-}
-
-/* CHAT ITEM */
-.chat-item{
-    display:flex;
-    align-items:center;
-    padding:14px;
-    cursor:pointer;
-    transition:0.2s;
-    border-bottom:1px solid #1f2c33;
-}
-
-.chat-item:hover{
-    background:#202c33;
-}
-
-/* AVATAR */
-.avatar{
-    width:50px;
-    height:50px;
-    border-radius:50%;
-    background:#00a884;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-weight:bold;
-    font-size:20px;
-    margin-right:12px;
-    flex-shrink:0;
-}
-
-/* INFOS */
-.chat-info{
-    flex:1;
-}
-
-.chat-top{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-}
-
-.chat-name{
-    font-weight:bold;
-    font-size:16px;
-}
-
-.chat-time{
-    font-size:12px;
-    color:#8696a0;
-}
-
-.last-message{
-    margin-top:4px;
-    color:#8696a0;
-    font-size:14px;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-}
-
-/* BADGE */
-.badge{
-    background:#00a884;
-    color:white;
-    font-size:11px;
-    border-radius:50%;
-    width:20px;
-    height:20px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    margin-left:10px;
-}
-
-/* EMPTY */
-.empty{
-    flex:1;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    background:#222e35;
-    color:#8696a0;
-    font-size:22px;
-}
-
-/* LINKS */
-a{
-    text-decoration:none;
-    color:white;
-}
-
-/* MOBILE */
-@media(max-width:800px){
-
-    .sidebar{
-        width:100%;
-    }
-
-    .empty{
-        display:none;
-    }
-}
-
-</style>
-</head>
-
-<body>
-
 <div class="container">
 
-    <!-- SIDEBAR -->
     <div class="sidebar">
 
         <div class="sidebar-header">
             <h2>💬 Discussions</h2>
         </div>
 
-        <!-- SEARCH -->
-        <div class="search-box">
-            <input type="text" placeholder="Rechercher une discussion...">
-        </div>
-
-        <!-- CHAT LIST -->
         <div class="chat-list">
 
-<!DOCTYPE html>
+            <% conversations.forEach(conv => { %>
 
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<title>Conversations</title>
+                <a href="/chat/<%= conv.other.username %>">
 
-<style>
+                    <div class="chat-item">
 
-body{
-    font-family:Arial;
-    background:#111b21;
-    color:white;
-    margin:0;
-}
+                        <div class="avatar">
+                            <img src="<%= conv.other.photo %>" width="50" height="50" style="border-radius:50%">
+                        </div>
 
-.header{
-    background:#202c33;
-    padding:15px;
-    font-size:22px;
-}
+                        <div class="chat-info">
 
-.conv{
-    padding:15px;
-    border-bottom:1px solid #2a3942;
-}
+                            <div class="chat-top">
+                                <div class="chat-name">
+                                    <%= conv.other.nom %>
+                                </div>
+                            </div>
 
-.conv a{
-    color:white;
-    text-decoration:none;
-    font-size:18px;
-}
+                        </div>
 
-.conv:hover{
-    background:#202c33;
-}
+                    </div>
 
-</style>
+                </a>
 
-</head>
-<body>
-
-<div class="header">
-    💬 Conversations
-</div>
-
-<% conversations.forEach(conv => { %>
-
-    <a href="/chat/<%= conv.otherUser.username %>">
-
-        <div class="conversation">
-
-            <img
-                src="<%= conv.otherUser.photo %>"
-                width="50"
-                height="50"
-                style="border-radius:50%;object-fit:cover;"
-            >
-
-            <h3>
-                <%= conv.otherUser.nom %>
-            </h3>
+            <% }) %>
 
         </div>
 
-    </a>
+    </div>
 
-<% }) %>
-</body>
-<script>
-const socket = io();
+    <div class="empty">
+        👈 Sélectionne une conversation
+    </div>
 
-socket.emit("user_online", "<%= user.id %>");
-</script>
-</html>
+</div>

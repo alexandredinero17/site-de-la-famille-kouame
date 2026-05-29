@@ -22,9 +22,4 @@ io.on("connection", (socket) => {
     });
 
 });
-app.get('/chat/:user', (req, res) => {
-    res.render('chat', {
-        user: req.session.user,
-        receiver: req.params.user
-    });
-});
+
