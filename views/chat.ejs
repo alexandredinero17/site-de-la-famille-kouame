@@ -100,15 +100,18 @@ button {
 <h3>
     Chat avec la famille
 </h3>
-<div id="chat-box"></div>
+<div id="chat-box">
 
-<div id="input">
-    <input id="msg" placeholder="Message..." />
-    <button onclick="sendMessage()">Envoyer</button>
+    <% messages.forEach(m => { %>
+        <div class="msg <%= m.sender_username === user.username ? 'me' : 'other' %>">
+            <b>@<%= m.sender_username %></b><br>
+            <%= m.message %>
+        </div>
+    <% }) %>
+
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
-
 <script>
 const socket = io();
 
@@ -117,24 +120,37 @@ socket.emit("join", "<%= roomId %>");
 
 function sendMessage() {
 
-   socket.emit("message", {
-    conversationId: Number("<%= roomId %>"), // 🔥 IMPORTANT
-    sender_username: "<%= user.username %>",
-    message: msg
-});
+    const msg = document.getElementById("msg").value;
+
+    if (!msg.trim()) return;
+
+    socket.emit("message", {
+        conversationId: Number("<%= roomId %>"),
+        sender_username: "<%= user.username %>",
+        message: msg
+    });
+
+    document.getElementById("msg").value = "";
 }
 
 socket.on("message", (data) => {
 
     const chat = document.getElementById("chat-box");
 
-    chat.innerHTML += `
-        <div>
-            <b>@${data.sender_username}</b>: ${data.message}
-        </div>
+    const div = document.createElement("div");
+    div.classList.add(data.sender_username === "<%= user.username %>" ? "me" : "other");
+
+    div.classList.add("msg");
+
+    div.innerHTML = `
+        <b>@${data.sender_username}</b><br>
+        ${data.message}
     `;
+
+    chat.appendChild(div);
+
+    chat.scrollTop = chat.scrollHeight;
 });
 </script>
-
 </body>
 </html>
