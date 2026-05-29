@@ -482,10 +482,10 @@ app.get('/delete-image/:id', isAdmin, async (req, res) => {
 
     } catch (err) {
 
-        console.log("🔥 DELETE IMAGE ERROR:", err);
+    console.log("💥 DELETE IMAGE ERROR COMPLET :", err);
+    res.status(500).send(err.message);
+}
 
-        res.status(500).send("Erreur interne du serveur");
-    }
 });
 app.get('/admin/membres', isAdmin, async (req, res) => {
 
