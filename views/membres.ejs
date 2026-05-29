@@ -5,7 +5,32 @@
     <meta charset="UTF-8">
     <title>Membres</title>
     <link rel="stylesheet" href="/css/style.css">
+    
 </head>
+<style>
+    .actions{
+    display:flex;
+    gap:10px;
+}
+
+.btn-chat{
+    background:#00a884;
+    color:white;
+    padding:8px 12px;
+    border-radius:20px;
+    text-decoration:none;
+    font-size:14px;
+}
+
+.btn-wa{
+    background:#25D366;
+    color:white;
+    padding:8px 12px;
+    border-radius:20px;
+    text-decoration:none;
+    font-size:14px;
+}
+</style>
 <body>
 
 <header>
@@ -24,23 +49,33 @@
 
             <p><strong>Email :</strong> <%= membre.email %></p>
 
-            <p><strong>Téléphone :</strong> <%= membre.telephone %></p>
+            <p><strong>Téléphone :</strong> <%=+225 membre.telephone %></p>
 
             <p><strong>Profession :</strong> <%= membre.profession %></p>
 
             <p><strong>Branche :</strong> <%= membre.branche %></p>
 
             <p><%= membre.description %></p>
+      
+      
+     <div class="actions">
 
-<a href="/chat/<%= membre.username %>">
-    💬 Discuter
-</a>
-        </div>
+        <!-- 💬 CHAT INTERNE -->
+        <a class="btn-chat" href="/chat/<%= user.username %>">
+            💬 Discuter
+        </a>
 
-    <% }) %>
+        <!-- 📲 WHATSAPP -->
+        <% if(user.telephone) { %>
+        <a class="btn-wa"
+           target="_blank"
+           href="https://wa.me/<%= user.telephone.replace('+','') %>">
+            📲 WhatsApp
+        </a>
+        <% } %>
 
-</div>
-
+    </div>
+<% }) %>
 <footer>
     LA GRANDE FAMILLE KOUAME
 </footer>
