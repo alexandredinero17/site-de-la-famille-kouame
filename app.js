@@ -149,63 +149,39 @@ io.on("connection", (socket) => {
 
     socket.on("join", (conversationId) => {
 
-        if (!conversationId) return;
+        if (typeof conversationId !== "number" && isNaN(conversationId)) {
+            console.log("❌ JOIN INVALID:", conversationId);
+            return;
+        }
 
         socket.join(String(conversationId));
-
-        console.log("JOIN ROOM:", conversationId);
     });
 
     socket.on("message", async (data) => {
 
-        try {
+        const { conversationId, sender_username, message } = data;
 
-            const {
-                conversationId,
+        // 🔥 BLOCAGE BUG
+        if (!conversationId || isNaN(conversationId)) {
+            console.log("❌ MESSAGE REJETÉ:", data);
+            return;
+        }
+
+        await db.query(
+            `INSERT INTO messages (conversation_id, sender_username, message)
+             VALUES ($1,$2,$3)`,
+            [
+                Number(conversationId),
                 sender_username,
                 message
-            } = data;
+            ]
+        );
 
-            if (
-                !conversationId ||
-                !sender_username ||
-                !message
-            ) {
-                return;
-            }
-
-            const saved = await db.query(
-                `
-                INSERT INTO messages
-                (
-                    conversation_id,
-                    sender_username,
-                    message
-                )
-                VALUES ($1,$2,$3)
-                RETURNING *
-                `,
-                [
-                    Number(conversationId),
-                    sender_username,
-                    xss(message)
-                ]
-            );
-
-            io.to(String(conversationId)).emit(
-                "message",
-                saved.rows[0]
-            );
-
-        } catch (err) {
-
-            console.log("SOCKET ERROR:", err);
-        }
-    });
-
-    socket.on("disconnect", () => {
-
-        console.log("USER DISCONNECTED");
+        io.to(String(conversationId)).emit("message", {
+            conversationId,
+            sender_username,
+            message
+        });
     });
 });
 // ================= HOME =================
