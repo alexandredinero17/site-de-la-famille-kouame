@@ -21,6 +21,71 @@ require('dotenv').config();
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
+const socket = io();
+
+const roomId = Number("<%= roomId %>");
+const input = document.getElementById("msg");
+
+socket.emit("join", roomId);
+
+function sendMessage(){
+
+    const msg = input.value.trim();
+    if(!msg) return;
+
+    socket.emit("message", {
+        conversationId: roomId,
+        sender_username: "<%= user.user_name %>",
+        message: msg
+    });
+
+    input.value = "";
+}
+socket.on("message", (data) => {
+
+    const div = document.createElement("div");
+
+    div.classList.add("msg");
+
+    if(data.sender_username === "<%= user.user_name %>"){
+        div.classList.add("me");
+    } else {
+        div.classList.add("other");
+    }
+
+    div.innerHTML = `
+        <span class="username">@${data.sender_username}</span>
+        <div class="text">${data.message}</div>
+        <div class="time">✓</div>
+    `;
+
+    document.getElementById("chat-box").appendChild(div);
+
+    document.getElementById("chat-box").scrollTop =
+        document.getElementById("chat-box").scrollHeight;
+});
+io.on("connection", (socket) => {
+
+    socket.on("join", (roomId) => {
+        socket.join(String(roomId));
+    });
+
+    socket.on("message", async (data) => {
+
+        const { conversationId, sender_username, message } = data;
+
+        if (!conversationId || !message) return;
+
+        const result = await db.query(
+            `INSERT INTO messages (conversation_id, sender_username, message)
+             VALUES ($1,$2,$3)
+             RETURNING *`,
+            [conversationId, sender_username, message]
+        );
+
+        io.to(String(conversationId)).emit("message", result.rows[0]);
+    });
+});
 
 // ================= SECURITY =================
 app.use(helmet({ contentSecurityPolicy: false }));
@@ -140,72 +205,6 @@ fileFilter: (req, file, cb) => {
 
 // ================= ADMIN =================
 
-// ================= SOCKET.IO =================
-const socket = io();
-
-const roomId = Number("<%= roomId %>");
-const input = document.getElementById("msg");
-
-socket.emit("join", roomId);
-
-function sendMessage(){
-
-    const msg = input.value.trim();
-    if(!msg) return;
-
-    socket.emit("message", {
-        conversationId: roomId,
-        sender_username: "<%= user.user_name %>",
-        message: msg
-    });
-
-    input.value = "";
-}
-socket.on("message", (data) => {
-
-    const div = document.createElement("div");
-
-    div.classList.add("msg");
-
-    if(data.sender_username === "<%= user.user_name %>"){
-        div.classList.add("me");
-    } else {
-        div.classList.add("other");
-    }
-
-    div.innerHTML = `
-        <span class="username">@${data.sender_username}</span>
-        <div class="text">${data.message}</div>
-        <div class="time">✓</div>
-    `;
-
-    document.getElementById("chat-box").appendChild(div);
-
-    document.getElementById("chat-box").scrollTop =
-        document.getElementById("chat-box").scrollHeight;
-});
-io.on("connection", (socket) => {
-
-    socket.on("join", (roomId) => {
-        socket.join(String(roomId));
-    });
-
-    socket.on("message", async (data) => {
-
-        const { conversationId, sender_username, message } = data;
-
-        if (!conversationId || !message) return;
-
-        const result = await db.query(
-            `INSERT INTO messages (conversation_id, sender_username, message)
-             VALUES ($1,$2,$3)
-             RETURNING *`,
-            [conversationId, sender_username, message]
-        );
-
-        io.to(String(conversationId)).emit("message", result.rows[0]);
-    });
-});
 // ================= CONVERSATIONS =================
 
 app.get('/conversations', async (req, res) => {
