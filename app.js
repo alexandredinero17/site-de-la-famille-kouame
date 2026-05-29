@@ -486,86 +486,136 @@ app.get('/conversations', async (req, res) => {
 // ================= CHAT =================
 app.get('/chat/:username', async (req, res) => {
 
-try {
+    try {
 
-    if (!req.session.user) {
-        return res.redirect('/login');
-    }
+        // utilisateur connecté obligatoire
+        if (!req.session.user) {
+            return res.redirect('/login');
+        }
 
-    // utilisateur connecté
-    const me = req.session.user;
+        // utilisateur connecté
+        const me = req.session.user;
 
-    // utilisateur cible
-    const userResult = await db.query(
-        "SELECT * FROM users WHERE user_name=$1",
-        [req.params.username]
-    );
+        // username dans URL
+        const username = req.params.username;
 
-    if (userResult.rows.length === 0) {
-        return res.send("Utilisateur introuvable");
-    }
+        // rechercher utilisateur cible
+        const userResult = await db.query(
+            `
+            SELECT *
+            FROM users
+            WHERE username = $1
+            LIMIT 1
+            `,
+            [username]
+        );
 
-    const other = userResult.rows[0];
+        // utilisateur inexistant
+        if (userResult.rows.length === 0) {
 
-    // empêcher chat avec soi-même
-    if (other.id === me.id) {
-        return res.redirect('/conversations');
-    }
+            return res.status(404).send(
+                "Utilisateur introuvable"
+            );
+        }
 
-    // conversation existante ?
-    let conv = await db.query(
-        `SELECT * FROM conversations
-         WHERE (user1=$1 AND user2=$2)
-         OR (user1=$2 AND user2=$1)
-         LIMIT 1`,
-        [me.id, other.id]
-    );
+        // utilisateur trouvé
+        const other = userResult.rows[0];
 
-    let conversationId;
+        // empêcher chat avec soi-même
+        if (other.id === me.id) {
 
-    // sinon création
-    if (conv.rows.length > 0) {
+            return res.redirect('/conversations');
+        }
 
-        conversationId = conv.rows[0].id;
+        // rechercher conversation existante
+        let convResult = await db.query(
+            `
+            SELECT *
+            FROM conversations
 
-    } else {
+            WHERE
+            (
+                user1 = $1
+                AND
+                user2 = $2
+            )
 
-        const created = await db.query(
-            `INSERT INTO conversations (user1, user2)
-             VALUES ($1,$2)
-             RETURNING id`,
+            OR
+
+            (
+                user1 = $2
+                AND
+                user2 = $1
+            )
+
+            LIMIT 1
+            `,
             [me.id, other.id]
         );
 
-        conversationId = created.rows[0].id;
+        let conversationId;
+
+        // conversation déjà existante
+        if (convResult.rows.length > 0) {
+
+            conversationId = convResult.rows[0].id;
+
+        } else {
+
+            // créer nouvelle conversation
+            const newConv = await db.query(
+                `
+                INSERT INTO conversations
+                (
+                    user1,
+                    user2,
+                    created_at
+                )
+
+                VALUES ($1,$2,NOW())
+
+                RETURNING *
+                `,
+                [me.id, other.id]
+            );
+
+            conversationId = newConv.rows[0].id;
+        }
+
+        // récupérer messages
+        const messagesResult = await db.query(
+            `
+            SELECT *
+            FROM messages
+
+            WHERE conversation_id = $1
+
+            ORDER BY id ASC
+            `,
+            [conversationId]
+        );
+
+        // render page chat
+        res.render('chat', {
+
+            roomId: conversationId,
+
+            messages: messagesResult.rows,
+
+            user: me,
+
+            otherUser: other
+        });
+
+    } catch (err) {
+
+        console.log("CHAT ERROR:", err);
+
+        res.status(500).send(
+            "Erreur chat serveur"
+        );
     }
-
-    // récupérer messages
-    const messages = await db.query(
-        `SELECT *
-         FROM messages
-         WHERE conversation_id=$1
-         ORDER BY id ASC`,
-        [conversationId]
-    );
-
-    res.render("chat", {
-        roomId: conversationId,
-        messages: messages.rows,
-        user: me,
-        otherUser: other
-    });
-
-} catch (err) {
-
-    console.log("CHAT ERROR:", err);
-
-    res.status(500).send("Erreur chat serveur");
-}
-
-
 });
-
 // ================= LOGOUT =================
 app.get('/logout', (req, res) => {
     req.session.destroy(() => res.redirect('/'));
