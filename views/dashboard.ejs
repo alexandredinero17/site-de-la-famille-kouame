@@ -357,8 +357,7 @@
 </div>
 <div class="profile-card">
 
-    <img src="<%= user.photo || '/images/default.png' %>"
-         style="width:120px;height:120px;border-radius:50%;object-fit:cover;">
+<img src="<%= user.photo %>?t=<%= Date.now() %>" width="120">
 
     <h2><%= user.nom %></h2>
 

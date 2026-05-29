@@ -289,7 +289,7 @@ app.post('/profile/photo', upload.single('photo'), async (req, res) => {
 
         // mise à jour session (IMPORTANT)
         req.session.user.photo = photo;
-<img src="<%= user.photo %>?t=<%= Date.now() %>"></img>
+
         res.redirect('/dashboard');
 
     } catch (err) {

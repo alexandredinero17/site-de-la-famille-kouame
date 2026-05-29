@@ -17,8 +17,7 @@
 
         <div class="card">
 
-              <img src="<%= membre.photo || '/images/default.png' %>"
-         style="width:100px;height:100px;border-radius:50%;object-fit:cover;">
+<img src="<%= membre.photo %>?t=<%= Date.now() %>" width="80">
 
             <h2><%= membre.nom %></h2>
 
