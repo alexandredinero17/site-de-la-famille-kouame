@@ -115,33 +115,28 @@ io.on("connection", (socket) => {
     });
 
     // ✉️ MESSAGE
-    socket.on("message", async (data) => {
+   socket.on("message", async (data) => {
 
-        const {
-            conversationId,
-            sender_username,
-            message
-        } = data;
+    const { conversationId, sender_username, message } = data;
 
-        if (!conversationId || !sender_username || !message) return;
+    if (!Number(conversationId)) {
+        console.log("❌ conversationId invalide:", conversationId);
+        return;
+    }
 
-        const result = await db.query(
-            `INSERT INTO messages (conversation_id, sender_username, message)
-             VALUES ($1,$2,$3)
-             RETURNING id`,
-            [conversationId, sender_username, message]
-        );
+    const result = await db.query(
+        `INSERT INTO messages (conversation_id, sender_username, message)
+         VALUES ($1,$2,$3)`,
+        [conversationId, sender_username, message]
+    );
 
-        const messageId = result.rows[0].id;
-
-        io.to(String(conversationId)).emit("message", {
-            id: messageId,
-            conversationId,
-            sender_username,
-            message
-        });
+    io.to(String(conversationId)).emit("message", {
+        conversationId,
+        sender_username,
+        message
     });
-
+    });
+    
 });
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -506,6 +501,7 @@ app.get('/chat/:username', async (req, res) => {
 console.log("🔥 CHAT ERROR FULL:", err);
 console.log(err.stack);
 res.status(500).send(err.message);
+console.log(typeof conversationId, conversationId);
     }
 });
 // ================= LOGOUT =================
