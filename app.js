@@ -206,7 +206,6 @@ socket.on("voice_message", async (data) => {
     });
 
 });
-socket.on("mark_seen", async ({ conversationId, userId }) => {
 
     try {
 
@@ -242,7 +241,6 @@ socket.on("mark_seen", async ({ conversationId, userId }) => {
         console.log("SEEN ERROR:", err);
     }
 
-});
 
 // ================= SECURITY =================
 app.use(helmet({ contentSecurityPolicy: false }));
