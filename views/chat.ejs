@@ -78,9 +78,6 @@ button{
     border-radius:30px;
     cursor:pointer;
 }
-button:onclick{
-    background:#000000;
-}
 
 #typingStatus{
     font-size:12px;
@@ -164,28 +161,30 @@ button:onclick{
     >
 
     <!-- IMAGE -->
-<input
-    type="file"
-    id="imageFile"
-    accept="image/*"
->
-<!-- AUDIO -->
-<input
-    type="file"
-    id="audioFile"
-    accept="audio/*"
->
+    <input
+        type="file"
+        id="imageFile"
+        accept="image/*"
+    >
+
+    <!-- AUDIO -->
+    <input
+        type="file"
+        id="audioFile"
+        accept="audio/*"
+    >
 
     <!-- MICRO -->
     <button
         type="button"
-        id="recordBtn">
-        🎤Enregistrer
+        id="recordBtn"
+    >
+        🎤
     </button>
 
     <button
-        type="button"
-        onclick="sendMessage()">
+        onclick="sendMessage()"
+    >
         Envoyer
     </button>
 
@@ -299,7 +298,6 @@ recordBtn.addEventListener("click", async () => {
         mediaRecorder.start();
 
         recordBtn.innerHTML = "⏹️";
-        reload();
 
     }else{
 
@@ -357,14 +355,15 @@ input.addEventListener("input", () => {
 function sendMessage(){
 
     const message = input.value.trim();
+    const file = document.getElementById("imageFile").files[0];
 
-    if(!message && !imageFile && !audioFile) return;
+    if(!message && !file) return;
 
     // IMAGE
-    if(imageFile){
+    if(file){
 
         const formData = new FormData();
-        formData.append("image", imageFile.files[0]);
+        formData.append("image", file);
         formData.append("conversation_id", conversationId);
         formData.append("sender_id", userId);
         formData.append("message", message);
@@ -467,6 +466,7 @@ socket.on("message_edited", data => {
     }
 });
 socket.on("messages_seen_update", () => {
+    location.reload();
 });
 
 window.addEventListener("focus", () => {
