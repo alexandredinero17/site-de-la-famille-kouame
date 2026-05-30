@@ -102,6 +102,53 @@ if(receiver.rows.length > 0){
     });
 
 }
+socket.on('typing', (data) => {
+
+    socket.to(
+        'conv_' + data.conversation_id
+    ).emit('typing');
+
+});
+
+socket.on('stop_typing', (data) => {
+
+    socket.to(
+        'conv_' + data.conversation_id
+    ).emit('stop_typing');
+
+});
+socket.on("user_online", async (userId) => {
+
+    await db.query(
+        `UPDATE users
+         SET online=true,
+             last_seen=NOW()
+         WHERE id=$1`,
+        [userId]
+    );
+
+    io.emit("user_status", {
+        userId,
+        online: true
+    });
+
+});
+socket.on("user_offline", async (userId) => {
+
+    await db.query(
+        `UPDATE users
+         SET online=false,
+             last_seen=NOW()
+         WHERE id=$1`,
+        [userId]
+    );
+
+    io.emit("user_status", {
+        userId,
+        online: false
+    });
+
+});
 
 
         } catch (err) {
