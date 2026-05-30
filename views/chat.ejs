@@ -168,13 +168,14 @@ button{
     >
 
     <!-- MICRO -->
-<button type="button" id="recordBtn">
-🎤 Enregistrer
-</button>
+    <button
+        type="button"
+        id="recordBtn">
+        🎤
+    </button>
 
     <button
-        onclick="sendMessage()"
-    >
+        onclick="sendMessage()">
         Envoyer
     </button>
 
@@ -226,119 +227,74 @@ window.onload = () => {
 let mediaRecorder;
 let audioChunks = [];
 
-const recordBtn = document.getElementById("recordBtn");
+const recordBtn =
+document.getElementById("recordBtn");
 
-recordBtn.addEventListener("click", async (e) => {
+recordBtn.addEventListener("click", async () => {
 
-    e.preventDefault();
+    if(!mediaRecorder ||
+       mediaRecorder.state === "inactive"){
 
-    try {
+        const stream =
+        await navigator.mediaDevices.getUserMedia({
+            audio:true
+        });
 
-        // Démarrer l'enregistrement
-        if (
-            !mediaRecorder ||
-            mediaRecorder.state === "inactive"
-        ) {
+        mediaRecorder =
+        new MediaRecorder(stream);
 
-            const stream =
-                await navigator.mediaDevices.getUserMedia({
-                    audio: true
-                });
+        audioChunks = [];
 
-            mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.ondataavailable =
+        e => {
+            audioChunks.push(e.data);
+        };
 
-            audioChunks = [];
+        mediaRecorder.onstop = async () => {
 
-            mediaRecorder.ondataavailable = (event) => {
+            const blob =
+            new Blob(audioChunks,{
+                type:"audio/webm"
+            });
 
-                if (event.data.size > 0) {
-                    audioChunks.push(event.data);
+            const formData =
+            new FormData();
+
+            formData.append(
+                "audio",
+                blob,
+                "voice.webm"
+            );
+
+            formData.append(
+                "conversation_id",
+                conversationId
+            );
+
+            formData.append(
+                "sender_id",
+                userId
+            );
+
+            await fetch(
+                "/upload-voice",
+                {
+                    method:"POST",
+                    body:formData
                 }
+            );
 
-            };
+        };
 
-            mediaRecorder.onstop = async () => {
+        mediaRecorder.start();
 
-                try {
+        recordBtn.innerHTML = "⏹️";
 
-                    const blob = new Blob(
-                        audioChunks,
-                        { type: "audio/webm" }
-                    );
+    }else{
 
-                    const formData = new FormData();
+        mediaRecorder.stop();
 
-                    formData.append(
-                        "audio",
-                        blob,
-                        "voice.webm"
-                    );
-
-                    formData.append(
-                        "conversation_id",
-                        conversationId
-                    );
-
-                    formData.append(
-                        "sender_id",
-                        userId
-                    );
-
-                    const response = await fetch(
-                        "/upload-voice",
-                        {
-                            method: "POST",
-                            body: formData
-                        }
-                    );
-
-                    if (!response.ok) {
-                        console.log("Erreur upload audio");
-                    }
-
-                    // Arrêter complètement le micro
-                    stream.getTracks().forEach(track => {
-                        track.stop();
-                    });
-
-                } catch (err) {
-
-                    console.log(
-                        "ERREUR ENVOI AUDIO :",
-                        err
-                    );
-
-                }
-
-            };
-
-            mediaRecorder.start();
-
-            recordBtn.innerHTML = "⏹️ Arrêter";
-
-            console.log("Enregistrement démarré");
-
-        } else {
-
-            mediaRecorder.stop();
-
-            recordBtn.innerHTML = "🎤 Enregistrer";
-
-            console.log("Enregistrement arrêté");
-
-        }
-
-    } catch (err) {
-
-        console.log(
-            "ERREUR MICROPHONE :",
-            err
-        );
-
-        alert(
-            "Impossible d'accéder au microphone."
-        );
-
+        recordBtn.innerHTML = "🎤";
     }
 
 });
@@ -396,11 +352,10 @@ function sendMessage(){
     if(!message && !imageFile && !audioFile) return;
 
     // IMAGE
-    if(imageFile || audioFile){
+    if(imageFile){
 
         const formData = new FormData();
-        formData.append("image", imageFile);
-        formData.append("audio", audioFile);
+        formData.append("image", file);
         formData.append("conversation_id", conversationId);
         formData.append("sender_id", userId);
         formData.append("message", message);
@@ -503,14 +458,7 @@ socket.on("message_edited", data => {
     }
 });
 socket.on("messages_seen_update", () => {
-
-    const checkmarks = document.querySelectorAll(
-        ".message.me .checkmarks"
-    );
-
-    checkmarks.forEach(el => {
-        el.innerText = "✔✔";
-    });
+    location.reload();
 });
 
 window.addEventListener("focus", () => {
