@@ -135,11 +135,64 @@ footer{
     display:none;
 
 }
+.status {
+    font-size: 13px;
+    opacity: 0.8;
+}
+
+.online {
+    color: #00c853;
+    font-weight: bold;
+}
+
+.offline {
+    color: #777;
+}
 </style>
 
 </head>
      <a href="/">Accueil</a>
 <body>
+<script>
+    const socket = io();
+
+socket.on("user_status", (data) => {
+
+    const statusEl = document.getElementById("status-" + data.userId);
+
+    if (!statusEl) return;
+
+    if (data.online) {
+
+        statusEl.innerText = "🟢 En ligne";
+        statusEl.classList.add("online");
+        statusEl.classList.remove("offline");
+
+    } else {
+
+        statusEl.innerText = "⚫ Hors ligne";
+        statusEl.classList.add("offline");
+        statusEl.classList.remove("online");
+    }
+});
+socket.on("disconnect", async () => {
+
+    await db.query(
+        "UPDATE users SET online=false,last_seen=NOW() WHERE id=$1",
+        [socket.userId]
+    );
+
+    io.emit("user_status", {
+        userId: socket.userId,
+        online: false,
+        lastSeen: new Date()
+    });
+
+});
+if (!data.online) {
+    statusEl.innerText = "Vu récemment";
+}
+    </script>
 <a href="/conversations">
 
     💬 Conversations
@@ -170,13 +223,9 @@ footer{
                     <div class="username">
                         @<%= membre.username %>
                     </div>
-
-                    <% if(membre.en_ligne){ %>
-                        <div class="online">● En ligne</div>
-                    <% } else { %>
-                        <div class="offline">● Hors ligne</div>
-                    <% } %>
-                </div>
+                    <div id="status-<%= membre.id %>" class="status">
+                        <%= membre.online ? "🟢 En ligne" : "⚫ Hors ligne" %>
+                    </div>
 
             </div>
 
@@ -233,6 +282,7 @@ href="https://wa.me/225<%=membre.telephone.replace(/\D/g, '') %>">
     </div>
 
 </div>
+
 
 <footer>
     LA GRANDE FAMILLE KOUAME
