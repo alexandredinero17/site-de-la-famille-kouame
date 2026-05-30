@@ -198,6 +198,10 @@ footer{
 
             </div>
 
+            <div class="actions">
+
+                <% if(user.username !== membre.username){ %>
+
 
 <a class="btn chat"
   <a href="/chat/<%= membre.username %>" onclick="this.innerText='Chargement...'">
