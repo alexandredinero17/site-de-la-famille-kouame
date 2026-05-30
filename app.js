@@ -22,202 +22,6 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-
-io.on('connection', (socket) => {
-
-    console.log('Utilisateur connecté');
-
-    socket.on('join_conversation', (conversationId) => {
-
-        socket.join('conv_' + conversationId);
-
-    });
-        // rejoindre room utilisateur
-    socket.on('join_user', (userId) => {
-
-        socket.join('user_' + userId);
-
-    });
-
-socket.on('send_message', async (data) => {
-
-    try {
-
-        const {
-            conversation_id,
-            sender_id,
-            message,
-            image,
-            audio,
-            reply_to
-        } = data;
-
-        if (
-            (!message || message.trim() === '') &&
-            !image &&
-            !audio
-        ) {
-            return;
-        }
-
-        const result = await db.query(
-            `
-            INSERT INTO messages
-            (
-                conversation_id,
-                sender_id,
-                message,
-                image,
-                audio,
-                reply_to,
-                seen
-            )
-            VALUES
-            ($1,$2,$3,$4,$5,$6,false)
-
-            RETURNING *
-            `,
-            [
-                conversation_id,
-                sender_id,
-                message || null,
-                image || null,
-                audio || null,
-                reply_to || null
-            ]
-        );
-
-        const newMessage =
-            result.rows[0];
-
-        io.to(
-            'conv_' + conversation_id
-        ).emit(
-            'receive_message',
-            newMessage
-        );
-      const receiver = await db.query(`
-SELECT cu.user_id
-FROM conversation_users cu
-WHERE cu.conversation_id=$1
-AND cu.user_id != $2
-LIMIT 1
-`, [conversation_id, sender_id]);
-
-if(receiver.rows.length > 0){
-
-    const receiver_id = receiver.rows[0].user_id;
-
-    io.to('user_' + receiver_id)
-    .emit('new_notification',{
-        conversation_id,
-        sender_id,
-                    message:
-                        message ||
-                        '📎 Nouveau fichier'
-    });
-    socket.on(
-    'mark_seen',
-    async (
-        conversationId,
-        userId
-    ) => {
-
-        await db.query(
-            `
-            UPDATE messages
-
-            SET
-                seen = true,
-                seen_at = NOW()
-
-            WHERE
-                conversation_id = $1
-            AND
-                sender_id != $2
-            AND
-                seen = false
-            `,
-            [
-                conversationId,
-                userId
-            ]
-        );
-
-        io.to(
-            'conv_' +
-            conversationId
-        ).emit(
-            'messages_seen'
-        );
-
-    }
-);
-
-}
-socket.on('typing', (data) => {
-
-    socket.to(
-        'conv_' + data.conversation_id
-    ).emit('typing');
-
-});
-
-socket.on('stop_typing', (data) => {
-
-    socket.to(
-        'conv_' + data.conversation_id
-    ).emit('stop_typing');
-
-});
-socket.on("user_online", async (userId) => {
-
-    await db.query(
-        `UPDATE users
-         SET online=true,
-             last_seen=NOW()
-         WHERE id=$1`,
-        [userId]
-    );
-
-    io.emit("user_status", {
-        userId,
-        online: true
-    });
-
-});
-socket.on("user_offline", async (userId) => {
-
-    await db.query(
-        `UPDATE users
-         SET online=false,
-             last_seen=NOW()
-         WHERE id=$1`,
-        [userId]
-    );
-
-    io.emit("user_status", {
-        userId,
-        online: false
-    });
-
-});
-
-
-        } catch (err) {
-
-            console.log("ERREUR SOCKET :", err);
-
-        }
-
-    });
-
-});
-
-// ================= SECURITY =================
-app.use(helmet({ contentSecurityPolicy: false }));
-app.use(morgan('dev'));
-
 // ================= DATABASE =================
 const db = new Pool({
     host: process.env.DB_HOST,
@@ -228,6 +32,186 @@ const db = new Pool({
     ssl: { rejectUnauthorized: false },
     family: 4
 });
+io.on("connection", (socket) => {
+
+    console.log("Utilisateur connecté");
+
+    // ================= JOIN =================
+    socket.on("join_conversation", (conversationId) => {
+        socket.join("conv_" + conversationId);
+    });
+
+    socket.on("join_user", (userId) => {
+        socket.join("user_" + userId);
+    });
+
+    // ================= SEND MESSAGE =================
+    socket.on("send_message", async (data) => {
+        try {
+
+            const { conversation_id, sender_id, message, image, audio, reply_to } = data;
+
+            if ((!message || message.trim() === "") && !image && !audio) return;
+
+            const result = await db.query(
+                `INSERT INTO messages
+                (conversation_id, sender_id, message, image, audio, reply_to, seen)
+                VALUES ($1,$2,$3,$4,$5,$6,false)
+                RETURNING *`,
+                [
+                    conversation_id,
+                    sender_id,
+                    message || null,
+                    image || null,
+                    audio || null,
+                    reply_to || null
+                ]
+            );
+
+            const newMessage = result.rows[0];
+
+            io.to("conv_" + conversation_id)
+              .emit("receive_message", newMessage);
+
+            // notification receiver
+            const receiver = await db.query(
+                `SELECT user_id FROM conversation_users
+                 WHERE conversation_id=$1 AND user_id != $2 LIMIT 1`,
+                [conversation_id, sender_id]
+            );
+
+            if (receiver.rows.length > 0) {
+                io.to("user_" + receiver.rows[0].user_id)
+                  .emit("new_notification", {
+                      conversation_id,
+                      sender_id,
+                      message: message || "📎 Fichier"
+                  });
+            }
+
+        } catch (err) {
+            console.log("SEND MESSAGE ERROR:", err);
+        }
+    });
+  socket.on("delete_message", async ({ message_id }) => {
+    try {
+
+        await db.query(
+            `UPDATE messages
+             SET deleted=true, message='Message supprimé'
+             WHERE id=$1`,
+            [message_id]
+        );
+
+        io.emit("message_deleted", {
+            message_id
+        });
+
+    } catch (err) {
+        console.log("DELETE ERROR:", err);
+    }
+});
+socket.on("edit_message", async ({ message_id, new_text }) => {
+    try {
+
+        await db.query(
+            `UPDATE messages
+             SET message=$1, edited=true, edited_at=NOW()
+             WHERE id=$2`,
+            [new_text, message_id]
+        );
+
+        io.emit("message_edited", {
+            message_id,
+            new_text
+        });
+
+    } catch (err) {
+        console.log("EDIT ERROR:", err);
+    }
+});
+
+    // ================= MARK SEEN =================
+   socket.on("mark_seen", async ({ conversationId, userId }) => {
+
+    try {
+
+        await db.query(
+            `UPDATE messages
+             SET seen=true, seen_at=NOW()
+             WHERE conversation_id=$1
+             AND sender_id != $2`,
+            [conversationId, userId]
+        );
+
+        io.to("conv_" + conversationId)
+          .emit("messages_seen", {
+              conversationId,
+              userId
+          });
+
+    } catch (err) {
+        console.log(err);
+    }
+
+});
+socket.on("voice_message", async (data) => {
+    try {
+
+        const { conversation_id, sender_id, audio_url } = data;
+
+        const result = await db.query(
+            `INSERT INTO messages
+             (conversation_id, sender_id, audio, seen)
+             VALUES ($1,$2,$3,false)
+             RETURNING *`,
+            [conversation_id, sender_id, audio_url]
+        );
+
+        io.to("conv_" + conversation_id)
+          .emit("receive_message", result.rows[0]);
+
+    } catch (err) {
+        console.log("VOICE ERROR:", err);
+    }
+});
+    // ================= TYPING =================
+    socket.on("typing", (data) => {
+        socket.to("conv_" + data.conversation_id)
+              .emit("typing");
+    });
+
+    socket.on("stop_typing", (data) => {
+        socket.to("conv_" + data.conversation_id)
+              .emit("stop_typing");
+    });
+
+    // ================= ONLINE =================
+    socket.on("user_online", async (userId) => {
+        await db.query(
+            `UPDATE users SET online=true, last_seen=NOW() WHERE id=$1`,
+            [userId]
+        );
+
+        io.emit("user_status", { userId, online: true });
+    });
+
+    socket.on("user_offline", async (userId) => {
+        await db.query(
+            `UPDATE users SET online=false, last_seen=NOW() WHERE id=$1`,
+            [userId]
+        );
+
+        io.emit("user_status", { userId, online: false });
+    });
+
+});
+
+// ================= SECURITY =================
+app.use(helmet({ contentSecurityPolicy: false }));
+app.use(morgan('dev'));
+
+
 
 db.on('connect', () => console.log('PostgreSQL connecté'));
 
@@ -255,15 +239,16 @@ app.use(session({
     }
 }));
 const cloudinary = require('cloudinary').v2;
+const uploadResult = await cloudinary.uploader.upload(req.file.path, {
+    folder: "chat",
+    resource_type: "auto"
+});
 
 cloudinary.config({
-
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-
     api_key: process.env.CLOUDINARY_API_KEY,
-
-    api_secret: process.env.CLOUDINARY_API_SECRET
-
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure: true
 });
 
 async function getOrCreateConversation(user1, user2) {

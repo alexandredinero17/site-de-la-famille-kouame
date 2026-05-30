@@ -344,10 +344,9 @@ input.addEventListener('keypress', function(e){
     }
 
 });
-socket.on('messages_seen', () => {
-
+socket.on("messages_seen", () => {
     location.reload();
-
+    console.log("Messages lus ✔");
 });
 
 // --------------------
@@ -395,6 +394,14 @@ if(data.message){
     .getElementById('messages')
     .scrollHeight;
 
+});
+socket.on("message_edited", (data) => {
+    document.getElementById(data.message_id).querySelector(".text").innerText =
+        data.new_text;
+});
+socket.on("message_deleted", (data) => {
+    document.getElementById(data.message_id).innerText =
+        "Message supprimé";
 });
 
 // --------------------
