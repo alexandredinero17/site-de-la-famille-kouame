@@ -239,10 +239,7 @@ app.use(session({
     }
 }));
 const cloudinary = require('cloudinary').v2;
-const uploadResult = await cloudinary.uploader.upload(req.file.path, {
-    folder: "chat",
-    resource_type: "auto"
-});
+
 
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -613,7 +610,7 @@ res.redirect('/');
 // ================= LOGIN =================
 app.post('/login', async (req, res) => {
 
-    const { email, password } = req.body;
+const identifier = req.body.email;
 
     try {
 
