@@ -82,15 +82,26 @@ io.on('connection', (socket) => {
                 created_at: newMessage.created_at
 
             });
-              // 🔥 notification temps réel
-        io.to('user_' + receiver_id)
-        .emit('new_notification', {
+      const receiver = await db.query(`
+SELECT cu.user_id
+FROM conversation_users cu
+WHERE cu.conversation_id=$1
+AND cu.user_id != $2
+LIMIT 1
+`, [conversation_id, sender_id]);
 
-            conversation_id,
-            sender_id,
-            message
+if(receiver.rows.length > 0){
 
-        });
+    const receiver_id = receiver.rows[0].user_id;
+
+    io.to('user_' + receiver_id)
+    .emit('new_notification',{
+        conversation_id,
+        sender_id,
+        message
+    });
+
+}
 
 
         } catch (err) {
@@ -143,7 +154,17 @@ app.use(session({
         maxAge: 1000 * 60 * 60 * 24 * 30
     }
 }));
+const cloudinary = require('cloudinary').v2;
 
+cloudinary.config({
+
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+
+    api_key: process.env.CLOUDINARY_API_KEY,
+
+    api_secret: process.env.CLOUDINARY_API_SECRET
+
+});
 
 async function getOrCreateConversation(user1, user2) {
 
@@ -300,145 +321,6 @@ app.get('/conversations', async (req, res) => {
 });
 // ================= CHAT PRIVÉ =================
 
-app.get('/chat/:username', async (req, res) => {
-
-    try {
-
-        // sécurité connexion
-        if (!req.session.user) {
-            return res.redirect('/login');
-        }
-
-        const currentUser = req.session.user;
-
-        const username = req.params.username;
-
-        console.log("USERNAME :", username);
-
-        // utilisateur cible
-        const userResult = await db.query(
-            `
-            SELECT *
-            FROM users
-            WHERE username = $1
-            `,
-            [username]
-        );
-
-        console.log("USER RESULT :", userResult.rows);
-
-        // introuvable
-        if (userResult.rows.length === 0) {
-
-            return res.send("Utilisateur introuvable");
-
-        }
-
-        const membre = userResult.rows[0];
-
-        // empêcher soi-même
-        if (membre.id === currentUser.id) {
-
-            return res.redirect('/membres');
-
-        }
-
-        // chercher conversation
-        const convResult = await db.query(
-            `
-            SELECT c.id
-
-            FROM conversations c
-
-            INNER JOIN conversation_users cu1
-            ON cu1.conversation_id = c.id
-
-            INNER JOIN conversation_users cu2
-            ON cu2.conversation_id = c.id
-
-            WHERE cu1.user_id = $1
-            AND cu2.user_id = $2
-
-            LIMIT 1
-            `,
-            [
-                currentUser.id,
-                membre.id
-            ]
-        );
-
-        console.log("CONV RESULT :", convResult.rows);
-
-        let conversationId;
-
-        // conversation inexistante
-        if (convResult.rows.length === 0) {
-
-            const newConv = await db.query(
-                `
-                INSERT INTO conversations
-                DEFAULT VALUES
-                RETURNING id
-                `
-            );
-
-            conversationId = newConv.rows[0].id;
-
-            console.log("NEW CONV :", conversationId);
-
-            await db.query(
-                `
-                INSERT INTO conversation_users
-                (
-                    conversation_id,
-                    user_id
-                )
-                VALUES
-                ($1,$2),
-                ($1,$3)
-                `,
-                [
-                    conversationId,
-                    currentUser.id,
-                    membre.id
-                ]
-            );
-
-        } else {
-
-            conversationId = convResult.rows[0].id;
-
-        }
-
-        // messages
-        const messagesResult = await db.query(
-            `
-            SELECT *
-            FROM messages
-            WHERE conversation_id = $1
-            ORDER BY created_at ASC
-            `,
-            [conversationId]
-        );
-
-        res.render('chat', {
-
-            membre,
-            user: currentUser,
-            conversationId,
-            messages: messagesResult.rows
-
-        });
-
-    } catch(err){
-
-        console.log("ERREUR COMPLETE :", err);
-
-        res.send("Erreur interne du serveur");
-
-    }
-
-});
 // ================= HOME =================
 app.use((req, res, next) => {
 
@@ -552,12 +434,22 @@ app.post('/register', upload.single('photo'), async (req, res) => {
         const hash = await bcrypt.hash(password, 10);
 
         // 📸 photo safe (ANTI-CRASH)
-        let photo = "/images/default.png";
+       let photo = "/images/default.png";
 
-        if (req.file && req.file.filename) {
-            photo = "/uploads/" + req.file.filename;
+if (req.file) {
+
+    const result = await cloudinary.uploader.upload(
+        req.file.path,
+        {
+            folder: 'famille-kouame/profils'
         }
+    );
+    fs.unlinkSync(req.file.path);
 
+    photo = result.secure_url;
+    const publicId = result.public_id;
+
+}
         // 💾 insert user
         await db.query(
             `INSERT INTO users 
@@ -626,7 +518,16 @@ app.post("/profile/photo", upload.single("photo"), async (req, res) => {
 
     try {
 
-        const photo = "/uploads/" + req.file.filename;
+       const result = await cloudinary.uploader.upload(
+    req.file.path,
+    {
+        folder: 'famille-kouame'
+    }
+);
+
+fs.unlinkSync(req.file.path);
+const photo = result.secure_url;
+const publicId = result.public_id;
 
         await db.query(
             "UPDATE users SET photo=$1 WHERE id=$2",
@@ -1204,22 +1105,29 @@ app.post(
                 return res.send("Aucune image");
             }
 
-            const imagePath =
-                "/uploads/" + req.file.filename;
+           const result = await cloudinary.uploader.upload(
+    req.file.path,
+    {
+        folder: 'famille-kouame/galerie'
+    }
+);
+fs.unlinkSync(req.file.path);
+
+const imagePath = result.secure_url;
+const publicId = result.public_id;
 
             await db.query(
-                `
-                INSERT INTO galerie
-                (user_name, image, description, date)
-                VALUES ($1, $2, $3, $4)
-                `,
-                [
-                    req.session.user.nom,
-                    imagePath,
-                    req.body.description || null,
-                    new Date()
-                ]
-            );
+`INSERT INTO galerie
+(user_name,image,public_id,description,date)
+VALUES($1,$2,$3,$4,$5)`,
+[
+    req.session.user.nom,
+    imagePath,
+    publicId,
+    req.body.description,
+    new Date()
+]
+);
 
             res.redirect('/galerie');
 
@@ -1235,7 +1143,8 @@ app.post(
 );
 
 // ================= START SERVER =================
-const PORT = process.env.PORT || 10000;
-server.listen(3000, () => {
-    console.log("Serveur démarré");
+const PORT = process.env.PORT || 3000;
+
+server.listen(PORT, () => {
+    console.log("Serveur démarré sur le port " + PORT);
 });
