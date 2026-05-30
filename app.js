@@ -835,110 +835,80 @@ app.get('/messages', async (req, res) => {
 // ================= PRIVATE CHAT =================
 app.get('/chat/:username', async (req, res) => {
 
-try {
-    console.log("STEP 1 OK");
+    try {
 
-    const convResult = await db.query(
-        `
-        SELECT 1
-        `
-    );
+        if (!req.session.user) {
+            return res.redirect('/login');
+        }
 
-    console.log("STEP 2 OK");
+        const currentUser = req.session.user;
+        const username = req.params.username;
 
-    return res.send("DB OK");
+        const userResult = await db.query(
+            `SELECT * FROM users WHERE username = $1 LIMIT 1`,
+            [username]
+        );
 
-        // utilisateur introuvable
         if (userResult.rows.length === 0) {
-            return res.send("Utilisateur introuvable");
+            return res.status(404).send("Utilisateur introuvable");
         }
 
         const membre = userResult.rows[0];
 
-        // empêche de parler avec soi-même
         if (membre.id === currentUser.id) {
             return res.redirect('/membres');
         }
 
-        // recherche conversation existante
-console.log("currentUser.id =", currentUser.id);
-console.log("membre =", membre);
-console.log("membre.id =", membre?.id);
-console.log("SESSION USER:", req.session.user);
-console.log("USERNAME PARAM:", req.params.username);
-let conversationId;
+        let conversationId;
 
-if (!currentUser?.id || !membre?.id) {
-    return res.status(500).send("User IDs invalid");
-}
-
-const convResult = await db.query(
-    `
-    SELECT c.id
-    FROM conversations c
-    WHERE EXISTS (
-        SELECT 1 FROM conversation_users cu1
-        WHERE cu1.conversation_id = c.id
-        AND cu1.user_id = $1
-    )
-    AND EXISTS (
-        SELECT 1 FROM conversation_users cu2
-        WHERE cu2.conversation_id = c.id
-        AND cu2.user_id = $2
-    )
-    LIMIT 1
-    `,
-    [currentUser.id, membre.id]
-);
-
-if (convResult.rows.length === 0) {
-
-    const newConv = await db.query(
-        `INSERT INTO conversations DEFAULT VALUES RETURNING id`
-    );
-
-    conversationId = newConv.rows[0].id;
-
-    await db.query(
-        `
-        INSERT INTO conversation_users (conversation_id, user_id)
-        VALUES ($1,$2), ($1,$3)
-        `,
-        [conversationId, currentUser.id, membre.id]
-    );
-
-} else {
-    conversationId = convResult.rows[0].id;
-}
-
-        // récupération messages
-        const messagesResult = await db.query(
+        const convResult = await db.query(
             `
-            SELECT *
-            FROM messages
-            WHERE conversation_id = $1
-            ORDER BY created_at ASC
+            SELECT c.id
+            FROM conversations c
+            JOIN conversation_users cu1 ON cu1.conversation_id = c.id
+            JOIN conversation_users cu2 ON cu2.conversation_id = c.id
+            WHERE cu1.user_id = $1 AND cu2.user_id = $2
+            LIMIT 1
             `,
+            [currentUser.id, membre.id]
+        );
+
+        if (convResult.rows.length === 0) {
+
+            const newConv = await db.query(
+                `INSERT INTO conversations(created_at) VALUES(NOW()) RETURNING id`
+            );
+
+            conversationId = newConv.rows[0].id;
+
+            await db.query(
+                `INSERT INTO conversation_users (conversation_id, user_id)
+                 VALUES ($1,$2), ($1,$3)`,
+                [conversationId, currentUser.id, membre.id]
+            );
+
+        } else {
+            conversationId = convResult.rows[0].id;
+        }
+
+        const messagesResult = await db.query(
+            `SELECT * FROM messages
+             WHERE conversation_id = $1
+             ORDER BY created_at ASC`,
             [conversationId]
         );
 
-        res.render('chat', {
-
+        return res.render('chat', {
             membre,
             user: currentUser,
             conversationId,
             messages: messagesResult.rows
-
         });
 
     } catch (err) {
-
-        res.status(500).send("Erreur interne du serveur");
-        console.log("FULL ERROR CHAT:", err);
-console.log(err.stack);
-
+        console.log("CHAT ERROR:", err);
+        return res.status(500).send("Erreur interne du serveur");
     }
-
 });
 
 // ================= ADMIN MIDDLEWARE =================
