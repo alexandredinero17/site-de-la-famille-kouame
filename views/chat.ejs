@@ -132,28 +132,141 @@ button{
             <div><%= msg.message %></div>
         <% } %>
 
-        <% if(msg.sender_id === user.id){ %>
-       <small>
-    <%= msg.seen_by_me ? '✓' : '✓✓' %>
-</small>
-        <% } %>
+<% if(msg.seen_count > 0){ %>
+✔✔
+<% } else { %>
+✔
+<% } %>
+
+<% if(msg.audio){ %>
+
+<audio controls>
+    <source src="<%= msg.audio %>">
+</audio>
+
+<% } %>
 
     </div>
 
 <% }) %>
-
 </div>
 
 <!-- INPUT -->
 <div class="form">
-    <input id="msg" type="text" placeholder="Votre message...">
 
-    <input type="file" id="imageFile" accept="image/*">
+    <input
+        id="msg"
+        type="text"
+        placeholder="Votre message..."
+    >
 
-    <button onclick="sendMessage()">Envoyer</button>
+    <!-- IMAGE -->
+    <input
+        type="file"
+        id="imageFile"
+        accept="image/*"
+    >
+
+    <!-- AUDIO -->
+    <input
+        type="file"
+        id="audioFile"
+        accept="audio/*"
+    >
+
+    <!-- MICRO -->
+    <button
+        type="button"
+        id="recordBtn"
+    >
+        🎤
+    </button>
+
+    <button
+        onclick="sendMessage()"
+    >
+        Envoyer
+    </button>
+
 </div>
 
 <script>
+    let mediaRecorder;
+let audioChunks = [];
+
+const recordBtn =
+document.getElementById("recordBtn");
+
+recordBtn.addEventListener("click", async () => {
+
+    if(!mediaRecorder ||
+       mediaRecorder.state === "inactive"){
+
+        const stream =
+        await navigator.mediaDevices.getUserMedia({
+            audio:true
+        });
+
+        mediaRecorder =
+        new MediaRecorder(stream);
+
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable =
+        e => {
+            audioChunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = async () => {
+
+            const blob =
+            new Blob(audioChunks,{
+                type:"audio/webm"
+            });
+
+            const formData =
+            new FormData();
+
+            formData.append(
+                "audio",
+                blob,
+                "voice.webm"
+            );
+
+            formData.append(
+                "conversation_id",
+                conversationId
+            );
+
+            formData.append(
+                "sender_id",
+                userId
+            );
+
+            await fetch(
+                "/upload-voice",
+                {
+                    method:"POST",
+                    body:formData
+                }
+            );
+
+        };
+
+        mediaRecorder.start();
+
+        recordBtn.innerHTML = "⏹️";
+
+    }else{
+
+        mediaRecorder.stop();
+
+        recordBtn.innerHTML = "🎤";
+    }
+
+});
+    let notifCount = 0;
+const seenNotifications = new Set();
 
 const socket = io();
 
@@ -190,22 +303,24 @@ window.addEventListener("beforeunload", () => {
 // --------------------
 // TYPING
 // --------------------
-let typingTimer;
+let timer;
 
 input.addEventListener("input", () => {
 
     socket.emit("typing", {
-        conversation_id: conversationId,
-        user_id: userId
+        conversation_id: conversationId
     });
 
-    clearTimeout(typingTimer);
+    clearTimeout(timer);
 
-    typingTimer = setTimeout(() => {
+    timer = setTimeout(() => {
+
         socket.emit("stop_typing", {
             conversation_id: conversationId
         });
-    }, 1000);
+
+    }, 1500);
+
 });
 
 // --------------------
@@ -302,19 +417,32 @@ socket.on("user_status", (data) => {
             data.online ? "🟢 En ligne" : "⚫ Hors ligne";
     }
 });
-socket.on("messages_seen_update", ({ userId }) => {
 
-    // ici tu peux refresh uniquement les ticks
-    console.log("Seen update from user:", userId);
+socket.on("message_deleted", data => {
 
+    const el = document.getElementById(
+        "msg-" + data.message_id
+    );
+
+    if(el){
+        el.innerHTML = "Message supprimé";
+    }
+});
+
+socket.on("message_edited", data => {
+
+    const text = document.querySelector(
+        "#msg-" + data.message_id + " .text"
+    );
+
+    if(text){
+        text.innerText = data.new_text;
+    }
+});
+socket.on("messages_seen_update", () => {
+    location.reload();
 });
 socket.on('new_notification', (data) => {
-
-    // 🔥 ANTI DOUBLON
-    if(seenNotifications.has(data.messageId)) return;
-
-    seenNotifications.add(data.messageId);
-    const seenNotifications = new Set();
 
     // badge compteur
     notifCount++;
@@ -331,16 +459,22 @@ socket.on('new_notification', (data) => {
         });
 
     }
-    window.addEventListener("focus", () => {
-    notifCount = 0;
-    document.getElementById("notif-count").style.display = "none";
+
 });
+window.addEventListener("focus", () => {
 
+    notifCount = 0;
 
+    const badge =
+        document.getElementById("notif-count");
+
+    badge.style.display = "none";
+
+});
     // son
     const audio = new Audio('/sounds/song.mp3');
     audio.play().catch(() => {});
-});
+
 
 
 </script>

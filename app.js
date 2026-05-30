@@ -93,80 +93,72 @@ io.on("connection", (socket) => {
             console.log("SEND MESSAGE ERROR:", err);
         }
     });
-  socket.on("delete_message", async ({ message_id }) => {
-    try {
+socket.on("delete_message", async ({ message_id }) => {
 
-        await db.query(
-            `UPDATE messages
-             SET deleted=true, message='Message supprimé'
-             WHERE id=$1`,
-            [message_id]
-        );
+    await db.query(
+        `
+        UPDATE messages
+        SET deleted=true,
+            message='Message supprimé'
+        WHERE id=$1
+        `,
+        [message_id]
+    );
 
-        io.emit("message_deleted", {
-            message_id
-        });
+    io.emit("message_deleted", {
+        message_id
+    });
 
-    } catch (err) {
-        console.log("DELETE ERROR:", err);
-    }
 });
-socket.on("edit_message", async ({ message_id, new_text }) => {
-    try {
+socket.on("edit_message", async data => {
 
-        await db.query(
-            `UPDATE messages
-             SET message=$1, edited=true, edited_at=NOW()
-             WHERE id=$2`,
-            [new_text, message_id]
-        );
+    await db.query(
+        `
+        UPDATE messages
+        SET message=$1,
+            edited=true
+        WHERE id=$2
+        `,
+        [
+            data.new_text,
+            data.message_id
+        ]
+    );
 
-        io.emit("message_edited", {
-            message_id,
-            new_text
-        });
-
-    } catch (err) {
-        console.log("EDIT ERROR:", err);
-    }
+    io.emit("message_edited", data);
 });
 
     // ================= MARK SEEN =================
-   socket.on("mark_seen", async ({ conversationId, userId }) => {
-    try {
+socket.on("mark_seen", async ({ conversationId, userId }) => {
 
-        // récupérer messages non vus envoyés par les autres
-        const messages = await db.query(
+    const messages = await db.query(
+        `
+        SELECT id
+        FROM messages
+        WHERE conversation_id=$1
+        AND sender_id<>$2
+        `,
+        [conversationId, userId]
+    );
+
+    for (const msg of messages.rows) {
+
+        await db.query(
             `
-            SELECT id
-            FROM messages
-            WHERE conversation_id = $1
-              AND sender_id != $2
+            INSERT INTO message_seen(message_id,user_id)
+            VALUES($1,$2)
+            ON CONFLICT DO NOTHING
             `,
-            [conversationId, userId]
+            [msg.id, userId]
         );
+    
 
-        for (let msg of messages.rows) {
+    io.to("conv_" + conversationId)
+      .emit("messages_seen_update");
 
-            await db.query(
-                `
-                INSERT INTO message_seen (message_id, user_id)
-                VALUES ($1, $2)
-                ON CONFLICT DO NOTHING
-                `,
-                [msg.id, userId]
-            );
-        }
-
-        io.to("conv_" + conversationId)
-          .emit("messages_seen_update", {
-              userId
-          });
-
-    } catch (err) {
-        console.log("SEEN ERROR:", err);
     }
 });
+
 socket.on("voice_message", async (data) => {
     try {
 
@@ -188,33 +180,58 @@ socket.on("voice_message", async (data) => {
     }
 });
     // ================= TYPING =================
-    socket.on("typing", (data) => {
-        socket.to("conv_" + data.conversation_id)
-              .emit("typing");
-    });
+socket.on("typing", data => {
 
-    socket.on("stop_typing", (data) => {
-        socket.to("conv_" + data.conversation_id)
-              .emit("stop_typing");
-    });
+    socket.to("conv_" + data.conversation_id)
+          .emit("typing");
+
+});
+
+socket.on("stop_typing", data => {
+
+    socket.to("conv_" + data.conversation_id)
+          .emit("stop_typing");
+
+});
+});
 
     // ================= ONLINE =================
+   const onlineUsers = new Map();
+
+io.on("connection", (socket) => {
+
     socket.on("user_online", async (userId) => {
+
+        socket.userId = userId;
+
+        onlineUsers.set(userId, socket.id);
+
         await db.query(
-            `UPDATE users SET online=true, last_seen=NOW() WHERE id=$1`,
+            "UPDATE users SET online=true,last_seen=NOW() WHERE id=$1",
             [userId]
         );
 
-        io.emit("user_status", { userId, online: true });
+        io.emit("user_status", {
+            userId,
+            online: true
+        });
     });
 
-    socket.on("user_offline", async (userId) => {
+    socket.on("disconnect", async () => {
+
+        if (!socket.userId) return;
+
+        onlineUsers.delete(socket.userId);
+
         await db.query(
-            `UPDATE users SET online=false, last_seen=NOW() WHERE id=$1`,
-            [userId]
+            "UPDATE users SET online=false,last_seen=NOW() WHERE id=$1",
+            [socket.userId]
         );
 
-        io.emit("user_status", { userId, online: false });
+        io.emit("user_status", {
+            userId: socket.userId,
+            online: false
+        });
     });
 
 });
@@ -322,7 +339,12 @@ fileFilter: (req, file, cb) => {
         "image/jpeg",
         "image/png",
         "image/jpg",
-        "image/webp"
+        "image/webp",
+        "audio/webm",
+        "audio/mpeg",
+        "audio/mp3",
+        "audio/wav",
+        "audio/ogg"
     ];
 
     if (allowed.includes(file.mimetype)) {
@@ -1227,6 +1249,65 @@ VALUES($1,$2,$3,$4,$5)`,
                 "Erreur interne du serveur lors upload"
             );
         }
+    }
+);
+app.post(
+    "/upload-voice",
+    upload.single("audio"),
+    async (req,res)=>{
+
+        try{
+
+            const result =
+            await cloudinary.uploader.upload(
+                req.file.path,
+                {
+                    resource_type:"video",
+                    folder:"voice"
+                }
+            );
+
+            const audioUrl =
+            result.secure_url;
+
+            const msg =
+            await db.query(
+                `
+                INSERT INTO messages
+                (
+                    conversation_id,
+                    sender_id,
+                    audio,
+                    seen
+                )
+                VALUES
+                ($1,$2,$3,false)
+                RETURNING *
+                `,
+                [
+                    req.body.conversation_id,
+                    req.body.sender_id,
+                    audioUrl
+                ]
+            );
+
+            io.to(
+                "conv_" +
+                req.body.conversation_id
+            ).emit(
+                "receive_message",
+                msg.rows[0]
+            );
+
+            res.sendStatus(200);
+
+        }catch(err){
+
+            console.log(err);
+            res.status(500).send("Erreur audio");
+
+        }
+
     }
 );
 
