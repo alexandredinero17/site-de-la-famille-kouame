@@ -165,10 +165,15 @@ button{
         type="file"
         id="imageFile"
         accept="image/*",
+    >
+
+      <!-- AUDIO -->
+        <input
         type="file"
         id="audioFile"
-        accept="audio/*"
-    >
+        accept="audio/*",
+        style="display:none;"
+        >
 
 
     <!-- MICRO -->
@@ -199,30 +204,7 @@ const input = document.getElementById("msg");
 const messagesBox = document.getElementById("messages");
 
 
-socket.on("new_notification", (data) => {
-
-    if (seenNotifications.has(data.messageId)) return;
-
-    seenNotifications.add(data.messageId);
-
-    notifCount++;
-
-    const badge = document.getElementById("notif-count");
-
-    badge.style.display = "inline-block";
-    badge.innerText = notifCount;
-
-    if (Notification.permission === "granted") {
-
-        new Notification("Nouveau message", {
-            body: data.message
-        });
-
-    }
-
-    const audio = new Audio("/sounds/song.mp3");
-    audio.play().catch(() => {});
-});
+socket.on('new_notification', (data) => { notifCount++; const badge = document.getElementById( 'notif-count' ); badge.style.display = 'inline-block'; badge.innerText = notifCount; if( Notification.permission === 'granted' ){ new Notification( 'Nouveau message', { body: data.message } ); } const audio = new Audio( '/sounds/song.mp3' ); audio.play().catch(() => {}); }); if( Notification.permission !== 'granted' ){ Notification.requestPermission(); }
 let notifCount = 0;
 
 // scroll bas

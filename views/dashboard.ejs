@@ -410,30 +410,7 @@
 
 
 let notifCount = 0;
-socket.on("new_notification", (data) => {
-
-    if (seenNotifications.has(data.messageId)) return;
-
-    seenNotifications.add(data.messageId);
-
-    notifCount++;
-
-    const badge = document.getElementById("notif-count");
-
-    badge.style.display = "inline-block";
-    badge.innerText = notifCount;
-
-    if (Notification.permission === "granted") {
-
-        new Notification("Nouveau message", {
-            body: data.message
-        });
-
-    }
-
-    const audio = new Audio("/sounds/song.mp3");
-    audio.play().catch(() => {});
-});
+socket.on('new_notification', (data) => { notifCount++; const badge = document.getElementById( 'notif-count' ); badge.style.display = 'inline-block'; badge.innerText = notifCount; if( Notification.permission === 'granted' ){ new Notification( 'Nouveau message', { body: data.message } ); } const audio = new Audio( '/sounds/song.mp3' ); audio.play().catch(() => {}); }); if( Notification.permission !== 'granted' ){ Notification.requestPermission(); }
 
 
 </script>
