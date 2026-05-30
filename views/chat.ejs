@@ -164,11 +164,17 @@ button:onclick{
     >
 
     <!-- IMAGE -->
-    <input
-        type="file"
-        id="imageFile, audioFile"
-        accept="image/*,audio/*"
-    >
+<input
+    type="file"
+    id="imageFile"
+    accept="image/*"
+>
+<!-- AUDIO -->
+<input
+    type="file"
+    id="audioFile"
+    accept="audio/*"
+>
 
     <!-- MICRO -->
     <button
@@ -350,8 +356,6 @@ input.addEventListener("input", () => {
 function sendMessage(){
 
     const message = input.value.trim();
-    const imageFile = document.getElementById("imageFile").files[0];
-    const audioFile = document.getElementById("audioFile").files[0];
 
     if(!message && !imageFile && !audioFile) return;
 
@@ -359,7 +363,7 @@ function sendMessage(){
     if(imageFile){
 
         const formData = new FormData();
-        formData.append("image", file);
+        formData.append("image", imageFile.files[0]);
         formData.append("conversation_id", conversationId);
         formData.append("sender_id", userId);
         formData.append("message", message);
