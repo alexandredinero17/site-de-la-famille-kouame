@@ -12,7 +12,7 @@ socket.emit(
     currentUserId
 );
 
-const seenNotifications = new Set();
+
 let notifCount = 0;
 
 socket.on("new_notification", (data) => {

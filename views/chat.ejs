@@ -223,7 +223,6 @@ socket.on("new_notification", (data) => {
     const audio = new Audio("/sounds/song.mp3");
     audio.play().catch(() => {});
 });
-const seenNotifications = new Set();
 let notifCount = 0;
 
 // scroll bas
