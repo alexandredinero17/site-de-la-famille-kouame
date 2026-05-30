@@ -191,7 +191,49 @@ button{
 </div>
 
 <script>
-    let mediaRecorder;
+
+const socket = io();
+
+const conversationId = "<%= conversationId %>";
+const userId = "<%= user.id %>";
+const receiverId = "<%= membre.id %>";
+
+const input = document.getElementById("msg");
+const messagesBox = document.getElementById("messages");
+
+
+socket.on("new_notification", (data) => {
+
+    if (seenNotifications.has(data.messageId)) return;
+
+    seenNotifications.add(data.messageId);
+
+    notifCount++;
+
+    const badge = document.getElementById("notif-count");
+
+    badge.style.display = "inline-block";
+    badge.innerText = notifCount;
+
+    if (Notification.permission === "granted") {
+
+        new Notification("Nouveau message", {
+            body: data.message
+        });
+
+    }
+
+    const audio = new Audio("/sounds/song.mp3");
+    audio.play().catch(() => {});
+});
+const seenNotifications = new Set();
+let notifCount = 0;
+
+// scroll bas
+window.onload = () => {
+    messagesBox.scrollTop = messagesBox.scrollHeight;
+};
+let mediaRecorder;
 let audioChunks = [];
 
 const recordBtn =
@@ -265,22 +307,6 @@ recordBtn.addEventListener("click", async () => {
     }
 
 });
-    let notifCount = 0;
-const seenNotifications = new Set();
-
-const socket = io();
-
-const conversationId = "<%= conversationId %>";
-const userId = "<%= user.id %>";
-const receiverId = "<%= membre.id %>";
-
-const input = document.getElementById("msg");
-const messagesBox = document.getElementById("messages");
-
-// scroll bas
-window.onload = () => {
-    messagesBox.scrollTop = messagesBox.scrollHeight;
-};
 
 // JOIN
 socket.emit("join_conversation", conversationId);
@@ -442,25 +468,7 @@ socket.on("message_edited", data => {
 socket.on("messages_seen_update", () => {
     location.reload();
 });
-socket.on('new_notification', (data) => {
 
-    // badge compteur
-    notifCount++;
-
-    const badge = document.getElementById('notif-count');
-    badge.style.display = 'inline-block';
-    badge.innerText = notifCount;
-
-    // notification navigateur
-    if(Notification.permission === "granted"){
-
-        new Notification("Nouveau message", {
-            body: data.message
-        });
-
-    }
-
-});
 window.addEventListener("focus", () => {
 
     notifCount = 0;
@@ -471,11 +479,6 @@ window.addEventListener("focus", () => {
     badge.style.display = "none";
 
 });
-    // son
-    const audio = new Audio('/sounds/song.mp3');
-    audio.play().catch(() => {});
-
-
 
 </script>
 

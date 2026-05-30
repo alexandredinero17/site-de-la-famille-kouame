@@ -22,6 +22,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+
 // ================= DATABASE =================
 const db = new Pool({
     host: process.env.DB_HOST,
@@ -68,27 +69,31 @@ io.on("connection", (socket) => {
                 ]
             );
 
-            const newMessage = result.rows[0];
+         const newMessage = result.rows[0];
 
-            io.to("conv_" + conversation_id)
-              .emit("receive_message", newMessage);
+io.to("conv_" + conversation_id)
+  .emit("receive_message", newMessage);
 
-            // notification receiver
-            const receiver = await db.query(
-                `SELECT user_id FROM conversation_users
-                 WHERE conversation_id=$1 AND user_id != $2 LIMIT 1`,
-                [conversation_id, sender_id]
-            );
+const receiver = await db.query(
+    `SELECT user_id
+     FROM conversation_users
+     WHERE conversation_id=$1
+     AND user_id != $2
+     LIMIT 1`,
+    [conversation_id, sender_id]
+);
 
-            if (receiver.rows.length > 0) {
-                io.to("user_" + receiver.rows[0].user_id)
-                  .emit("new_notification", {
-                      conversation_id,
-                      sender_id,
-                      message: message || "📎 Fichier"
-                  });
-            }
+if (receiver.rows.length > 0) {
 
+    const receiverId = receiver.rows[0].user_id;
+
+    io.to("user_" + receiverId).emit("new_notification", {
+        messageId: newMessage.id,
+        conversationId: conversation_id,
+        senderId: sender_id,
+        message: message || "📎 Fichier"
+    });
+}
         } catch (err) {
             console.log("SEND MESSAGE ERROR:", err);
         }
