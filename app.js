@@ -835,26 +835,18 @@ app.get('/messages', async (req, res) => {
 // ================= PRIVATE CHAT =================
 app.get('/chat/:username', async (req, res) => {
 
-    try {
+try {
+    console.log("STEP 1 OK");
 
-        if (!req.session.user) {
-            return res.redirect('/login');
-        }
+    const convResult = await db.query(
+        `
+        SELECT 1
+        `
+    );
 
-        const currentUser = req.session.user;
+    console.log("STEP 2 OK");
 
-        const username = req.params.username;
-
-        // utilisateur cible
-        const userResult = await db.query(
-            `
-            SELECT *
-            FROM users
-            WHERE username = $1
-            LIMIT 1
-            `,
-            [username]
-        );
+    return res.send("DB OK");
 
         // utilisateur introuvable
         if (userResult.rows.length === 0) {
@@ -876,14 +868,24 @@ console.log("SESSION USER:", req.session.user);
 console.log("USERNAME PARAM:", req.params.username);
 let conversationId;
 
+if (!currentUser?.id || !membre?.id) {
+    return res.status(500).send("User IDs invalid");
+}
+
 const convResult = await db.query(
     `
     SELECT c.id
     FROM conversations c
-    JOIN conversation_users cu1 ON cu1.conversation_id = c.id
-    JOIN conversation_users cu2 ON cu2.conversation_id = c.id
-    WHERE cu1.user_id = $1
-    AND cu2.user_id = $2
+    WHERE EXISTS (
+        SELECT 1 FROM conversation_users cu1
+        WHERE cu1.conversation_id = c.id
+        AND cu1.user_id = $1
+    )
+    AND EXISTS (
+        SELECT 1 FROM conversation_users cu2
+        WHERE cu2.conversation_id = c.id
+        AND cu2.user_id = $2
+    )
     LIMIT 1
     `,
     [currentUser.id, membre.id]
@@ -892,19 +894,14 @@ const convResult = await db.query(
 if (convResult.rows.length === 0) {
 
     const newConv = await db.query(
-        `
-        INSERT INTO conversations(created_at)
-        VALUES(NOW())
-        RETURNING id
-        `
+        `INSERT INTO conversations DEFAULT VALUES RETURNING id`
     );
 
     conversationId = newConv.rows[0].id;
 
     await db.query(
         `
-        INSERT INTO conversation_users
-        (conversation_id, user_id)
+        INSERT INTO conversation_users (conversation_id, user_id)
         VALUES ($1,$2), ($1,$3)
         `,
         [conversationId, currentUser.id, membre.id]
