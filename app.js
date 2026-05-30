@@ -909,24 +909,6 @@ app.get('/chat/:username', async (req, res) => {
              ORDER BY created_at ASC`,
             [conversationId]
         );
-                // notification receiver (PROPRE + ANTI DOUBLON)
-const receiver = await db.query(
-    `SELECT user_id FROM conversation_users
-     WHERE conversation_id=$1 AND user_id != $2 LIMIT 1`,
-    [conversation_id, sender_id]
-);
-
-if (receiver.rows.length > 0) {
-
-    const receiverId = receiver.rows[0].user_id;
-
-    io.to("user_" + receiverId).emit("new_notification", {
-        messageId: newMessage.id,   // IMPORTANT
-        conversationId: conversation_id,
-        senderId: sender_id,
-        message: message || "📎 Fichier"
-    });
-}
 
         return res.render('chat', {
             membre,
@@ -935,13 +917,11 @@ if (receiver.rows.length > 0) {
             messages: messagesResult.rows
         });
 
-
     } catch (err) {
         console.log("CHAT ERROR:", err);
         return res.status(500).send("Erreur interne du serveur");
     }
 });
-
 // ================= ADMIN MIDDLEWARE =================
 
 function isAdmin(req, res, next){
