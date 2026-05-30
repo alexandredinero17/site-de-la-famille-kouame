@@ -133,27 +133,39 @@ socket.on("edit_message", async ({ message_id, new_text }) => {
 
     // ================= MARK SEEN =================
    socket.on("mark_seen", async ({ conversationId, userId }) => {
-
     try {
 
-        await db.query(
-            `UPDATE messages
-             SET seen=true, seen_at=NOW()
-             WHERE conversation_id=$1
-             AND sender_id != $2`,
+        // récupérer messages non vus envoyés par les autres
+        const messages = await db.query(
+            `
+            SELECT id
+            FROM messages
+            WHERE conversation_id = $1
+              AND sender_id != $2
+            `,
             [conversationId, userId]
         );
 
+        for (let msg of messages.rows) {
+
+            await db.query(
+                `
+                INSERT INTO message_seen (message_id, user_id)
+                VALUES ($1, $2)
+                ON CONFLICT DO NOTHING
+                `,
+                [msg.id, userId]
+            );
+        }
+
         io.to("conv_" + conversationId)
-          .emit("messages_seen", {
-              conversationId,
+          .emit("messages_seen_update", {
               userId
           });
 
     } catch (err) {
-        console.log(err);
+        console.log("SEEN ERROR:", err);
     }
-
 });
 socket.on("voice_message", async (data) => {
     try {
@@ -206,44 +218,6 @@ socket.on("voice_message", async (data) => {
     });
 
 });
-socket.on("messages_seen", async ({ conversationId, userId }) => {
-
-    try {
-
-        // récupérer messages non vus envoyés par les autres
-        const messages = await db.query(
-            `
-            SELECT id
-            FROM messages
-            WHERE conversation_id = $1
-              AND sender_id != $2
-            `,
-            [conversationId, userId]
-        );
-
-        for (let msg of messages.rows) {
-
-            await db.query(
-                `
-                INSERT INTO message_seen (message_id, user_id)
-                VALUES ($1, $2)
-                ON CONFLICT DO NOTHING
-                `,
-                [msg.id, userId]
-            );
-        }
-
-
-        io.to("conv_" + conversationId)
-          .emit("messages_seen_update", {
-              userId
-          });
-
-    } catch (err) {
-        console.log("SEEN ERROR:", err);
-    }
-});
-
 
 // ================= SECURITY =================
 app.use(helmet({ contentSecurityPolicy: false }));
