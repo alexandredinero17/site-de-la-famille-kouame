@@ -163,24 +163,14 @@ button{
     <!-- IMAGE -->
     <input
         type="file"
-        id="imageFile"
-        accept="image/*"
-    >
-
-    <!-- AUDIO -->
-    <input
-        type="file"
-        id="audioFile"
-        accept="audio/*"
+        id="imageFile, audioFile"
+        accept="image/*,audio/*"
     >
 
     <!-- MICRO -->
-    <button
-        type="button"
-        id="recordBtn"
-    >
-        🎤
-    </button>
+<button type="button" id="recordBtn">
+🎤 Enregistrer
+</button>
 
     <button
         onclick="sendMessage()"
@@ -236,74 +226,119 @@ window.onload = () => {
 let mediaRecorder;
 let audioChunks = [];
 
-const recordBtn =
-document.getElementById("recordBtn");
+const recordBtn = document.getElementById("recordBtn");
 
-recordBtn.addEventListener("click", async () => {
+recordBtn.addEventListener("click", async (e) => {
 
-    if(!mediaRecorder ||
-       mediaRecorder.state === "inactive"){
+    e.preventDefault();
 
-        const stream =
-        await navigator.mediaDevices.getUserMedia({
-            audio:true
-        });
+    try {
 
-        mediaRecorder =
-        new MediaRecorder(stream);
+        // Démarrer l'enregistrement
+        if (
+            !mediaRecorder ||
+            mediaRecorder.state === "inactive"
+        ) {
 
-        audioChunks = [];
+            const stream =
+                await navigator.mediaDevices.getUserMedia({
+                    audio: true
+                });
 
-        mediaRecorder.ondataavailable =
-        e => {
-            audioChunks.push(e.data);
-        };
+            mediaRecorder = new MediaRecorder(stream);
 
-        mediaRecorder.onstop = async () => {
+            audioChunks = [];
 
-            const blob =
-            new Blob(audioChunks,{
-                type:"audio/webm"
-            });
+            mediaRecorder.ondataavailable = (event) => {
 
-            const formData =
-            new FormData();
-
-            formData.append(
-                "audio",
-                blob,
-                "voice.webm"
-            );
-
-            formData.append(
-                "conversation_id",
-                conversationId
-            );
-
-            formData.append(
-                "sender_id",
-                userId
-            );
-
-            await fetch(
-                "/upload-voice",
-                {
-                    method:"POST",
-                    body:formData
+                if (event.data.size > 0) {
+                    audioChunks.push(event.data);
                 }
-            );
 
-        };
+            };
 
-        mediaRecorder.start();
+            mediaRecorder.onstop = async () => {
 
-        recordBtn.innerHTML = "⏹️";
+                try {
 
-    }else{
+                    const blob = new Blob(
+                        audioChunks,
+                        { type: "audio/webm" }
+                    );
 
-        mediaRecorder.stop();
+                    const formData = new FormData();
 
-        recordBtn.innerHTML = "🎤";
+                    formData.append(
+                        "audio",
+                        blob,
+                        "voice.webm"
+                    );
+
+                    formData.append(
+                        "conversation_id",
+                        conversationId
+                    );
+
+                    formData.append(
+                        "sender_id",
+                        userId
+                    );
+
+                    const response = await fetch(
+                        "/upload-voice",
+                        {
+                            method: "POST",
+                            body: formData
+                        }
+                    );
+
+                    if (!response.ok) {
+                        console.log("Erreur upload audio");
+                    }
+
+                    // Arrêter complètement le micro
+                    stream.getTracks().forEach(track => {
+                        track.stop();
+                    });
+
+                } catch (err) {
+
+                    console.log(
+                        "ERREUR ENVOI AUDIO :",
+                        err
+                    );
+
+                }
+
+            };
+
+            mediaRecorder.start();
+
+            recordBtn.innerHTML = "⏹️ Arrêter";
+
+            console.log("Enregistrement démarré");
+
+        } else {
+
+            mediaRecorder.stop();
+
+            recordBtn.innerHTML = "🎤 Enregistrer";
+
+            console.log("Enregistrement arrêté");
+
+        }
+
+    } catch (err) {
+
+        console.log(
+            "ERREUR MICROPHONE :",
+            err
+        );
+
+        alert(
+            "Impossible d'accéder au microphone."
+        );
+
     }
 
 });
@@ -355,15 +390,17 @@ input.addEventListener("input", () => {
 function sendMessage(){
 
     const message = input.value.trim();
-    const file = document.getElementById("imageFile").files[0];
+    const imageFile = document.getElementById("imageFile").files[0];
+    const audioFile = document.getElementById("audioFile").files[0];
 
-    if(!message && !file) return;
+    if(!message && !imageFile && !audioFile) return;
 
     // IMAGE
-    if(file){
+    if(imageFile || audioFile){
 
         const formData = new FormData();
-        formData.append("image", file);
+        formData.append("image", imageFile);
+        formData.append("audio", audioFile);
         formData.append("conversation_id", conversationId);
         formData.append("sender_id", userId);
         formData.append("message", message);
