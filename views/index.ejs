@@ -386,70 +386,7 @@
     </style>
 
 </head>
-<script src="/socket.io/socket.io.js"></script>
 
-<script>
-
-const socket = io();
-
-const currentUserId = "<%= user ? user.id : '' %>";
-
-if(currentUserId){
-
-    socket.emit(
-        'join_user',
-        currentUserId
-    );
-
-}
-
-let notifCount = 0;
-
-socket.on('new_notification', (data) => {
-
-    notifCount++;
-
-    const badge =
-        document.getElementById('notif-count');
-
-    badge.style.display = 'inline-block';
-
-    badge.innerText = notifCount;
-
-    // notification navigateur
-    if (Notification.permission === 'granted') {
-
-        new Notification(
-            'Nouveau message',
-            {
-                body: data.message
-            }
-        );
-
-    }
-   // son
-   const audio = new Audio(
-    '/public/sounds/song.mp3'
-);
-
-audio.volume = 1;
-
-audio.play().catch(err => {
-
-    console.log("Erreur audio :", err);
-
-});
-
-});
-
-// demander permission
-if(Notification.permission !== 'granted'){
-
-    Notification.requestPermission();
-
-}
-
-</script>
 <body>
 
 <header>

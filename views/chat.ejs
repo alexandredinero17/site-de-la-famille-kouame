@@ -211,67 +211,8 @@ function sendMessage(){
     sender_id: userId,
     receiver_id: receiverId,
     message
-
-});
-
-socket.on('new_notification', (data) => {
-
-    notifCount++;
-
-    const badge =
-        document.getElementById('notif-count');
-
-    badge.style.display = 'inline-block';
-
-    badge.innerText = notifCount;
-
-    // notification navigateur
-    if (Notification.permission === 'granted') {
-
-        new Notification(
-            'Nouveau message',
-            {
-                body: data.message
-            }
-        );
-    }
-   // son
-   const audio = new Audio(
-    '/public/sounds/song.mp3'
-);
-
-audio.volume = 1;
-
-audio.play().catch(err => {
-
-    console.log("Erreur audio :", err);
-
-});
-
-});
-
-// demander permission
-if(Notification.permission !== 'granted'){
-
-    Notification.requestPermission();
-
-}
-socket.on('receive_message', (data) => {
-
-    const div = document.createElement('div');
-
-    div.className =
-        'message ' +
-        (data.sender_id === userId ? 'me' : 'other');
-
-    div.innerText = data.message;
-
-    document
-    .getElementById('messages')
-    .appendChild(div);
-
-});
-}
+   });
+    };
 
 </script>
 
