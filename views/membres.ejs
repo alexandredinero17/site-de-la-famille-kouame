@@ -140,59 +140,11 @@ footer{
     opacity: 0.8;
 }
 
-.online {
-    color: #00c853;
-    font-weight: bold;
-}
-
-.offline {
-    color: #777;
-}
 </style>
 
 </head>
      <a href="/">Accueil</a>
 <body>
-<script>
-    const socket = io();
-
-socket.on("user_status", (data) => {
-
-    const statusEl = document.getElementById("status-" + data.userId);
-
-    if (!statusEl) return;
-
-    if (data.online) {
-
-        statusEl.innerText = "🟢 En ligne";
-        statusEl.classList.add("online");
-        statusEl.classList.remove("offline");
-
-    } else {
-
-        statusEl.innerText = "⚫ Hors ligne";
-        statusEl.classList.add("offline");
-        statusEl.classList.remove("online");
-    }
-});
-socket.on("disconnect", async () => {
-
-    await db.query(
-        "UPDATE users SET online=false,last_seen=NOW() WHERE id=$1",
-        [socket.userId]
-    );
-
-    io.emit("user_status", {
-        userId: socket.userId,
-        online: false,
-        lastSeen: new Date()
-    });
-
-});
-if (!data.online) {
-    statusEl.innerText = "Vu récemment";
-}
-    </script>
 <a href="/conversations">
 
     💬 Conversations
@@ -256,7 +208,7 @@ if (!data.online) {
   <a href="/chat/<%= membre.username %>" onclick="this.innerText='Chargement...'">
     💬 Discuter
 </a>
-</a>
+
 
 <% } %>
 
@@ -269,8 +221,6 @@ href="https://wa.me/225<%=membre.telephone.replace(/\D/g, '') %>">
    📲 WhatsApp
 
 </a>
-
-
                 <% } %>
 
             </div>
@@ -287,6 +237,45 @@ href="https://wa.me/225<%=membre.telephone.replace(/\D/g, '') %>">
 <footer>
     LA GRANDE FAMILLE KOUAME
 </footer>
+<script>
+    const socket = io();
 
+socket.on("user_status", (data) => {
+
+    const statusEl = document.getElementById("status-" + data.userId);
+
+    if (!statusEl) return;
+
+    if (data.online) {
+
+        statusEl.innerText = "🟢 En ligne";
+        statusEl.classList.add("online");
+        statusEl.classList.remove("offline");
+
+    } else {
+
+        statusEl.innerText = "⚫ Hors ligne";
+        statusEl.classList.add("offline");
+        statusEl.classList.remove("online");
+    }
+});
+socket.on("disconnect", async () => {
+
+    await db.query(
+        "UPDATE users SET online=false,last_seen=NOW() WHERE id=$1",
+        [socket.userId]
+    );
+
+    io.emit("user_status", {
+        userId: socket.userId,
+        online: false,
+        lastSeen: new Date()
+    });
+
+});
+if (!data.online) {
+    statusEl.innerText = "Vu récemment";
+}
+    </script>
 </body>
 </html>
