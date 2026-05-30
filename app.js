@@ -610,7 +610,7 @@ res.redirect('/');
 // ================= LOGIN =================
 app.post('/login', async (req, res) => {
 
-const identifier = req.body.email;
+const { email, password } = req.body;
 
     try {
 
