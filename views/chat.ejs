@@ -118,8 +118,13 @@ button{
 </style>
 
 </head>
-     <a href="/">Accueil</a>
+
+<body>
+
+<a href="/">Accueil</a>
+
 <div id="notif-box"></div>
+
 <a href="/conversations">
 
     💬 Conversations
@@ -127,7 +132,6 @@ button{
     <span id="notif-count">0</span>
 
 </a>
-<body>
 
 <div class="header">
 
@@ -148,28 +152,66 @@ button{
     </div>
 
 </div>
+<div class="message <%= msg.sender_id === user.id ? 'me' : 'other' %>">
 
-<div class="messages" id="messages">
+    <% if(msg.image){ %>
 
-    <% messages.forEach(msg => { %>
+<img
+    src="<%= msg.image %>"
+    style="
+    max-width:250px;
+    border-radius:10px;
+    display:block;
+    margin-bottom:5px;
+">
 
-        <div class="message <%= msg.sender_id === user.id ? 'me' : 'other' %>">
+<% } %>
+<% if(msg.image){ %>
 
-            <%= msg.message %>
+    <img src="<%= msg.image %>" style="max-width:200px;border-radius:10px;">
 
-        </div>
+<% } %>
 
-    <% }) %>
+<% if(msg.message){ %>
+    <div><%= msg.message %></div>
+<% } %>
+
+    <% if(msg.sender_id === user.id){ %>
+
+        <small>
+
+            <%= msg.seen ? '✓✓' : '✓' %>
+
+        </small>
+        <% if(msg.seen_at){ %>
+
+<small>
+
+Vu le
+<%= new Date(msg.seen_at)
+.toLocaleString('fr-FR') %>
+
+</small>
+
+<% } %>
+
+    <% } %>
 
 </div>
 
 <div class="form">
 
-    <input
-        id="msg"
-        type="text"
-        placeholder="Votre message..."
-    >
+  <input
+    id="msg"
+    type="text"
+    placeholder="Votre message..."
+>
+
+<input
+    type="file"
+    id="imageFile"
+    accept="image/*"
+>
 
     <button onclick="sendMessage()">
 
@@ -188,7 +230,22 @@ const receiverId = "<%= membre.id %>";
 
 let notifCount = 0;
 
+window.onload = () => {
+
+    const messages =
+    document.getElementById('messages');
+
+    messages.scrollTop =
+    messages.scrollHeight;
+
+};
+
 socket.emit('join_conversation', conversationId);
+socket.emit(
+    'mark_seen',
+    conversationId,
+    userId
+);
 socket.emit('join_user', userId);
 socket.emit('user_online', userId);
 
@@ -239,22 +296,41 @@ input.addEventListener('input', () => {
 
 function sendMessage(){
 
-    const message =
-    input.value.trim();
+    const message = input.value.trim();
+    const file = document.getElementById('imageFile').files[0];
 
-    if(!message) return;
+    if(!message && !file) return;
 
+    // si image
+    if(file){
+
+        const formData = new FormData();
+        formData.append("image", file);
+        formData.append("conversation_id", conversationId);
+        formData.append("sender_id", userId);
+        formData.append("message", message);
+
+        fetch("/upload-chat-image", {
+            method: "POST",
+            body: formData
+        });
+
+        document.getElementById('imageFile').value = "";
+        input.value = "";
+
+        return;
+    }
+
+    // message texte simple
     socket.emit('send_message', {
 
         conversation_id: conversationId,
         sender_id: userId,
-        receiver_id: receiverId,
         message
 
     });
 
     input.value = '';
-
 }
 
 // envoi avec Entrée
@@ -266,6 +342,11 @@ input.addEventListener('keypress', function(e){
         sendMessage();
 
     }
+
+});
+socket.on('messages_seen', () => {
+
+    location.reload();
 
 });
 
@@ -284,8 +365,24 @@ socket.on('receive_message', (data) => {
         ? 'me'
         : 'other');
 
-    div.innerText =
-    data.message;
+   if(data.image){
+
+    const img = document.createElement("img");
+    img.src = data.image;
+    img.style.maxWidth = "200px";
+    img.style.borderRadius = "10px";
+
+    div.appendChild(img);
+
+}
+
+if(data.message){
+
+    const text = document.createElement("div");
+    text.innerText = data.message;
+    div.appendChild(text);
+
+}
 
     document
     .getElementById('messages')

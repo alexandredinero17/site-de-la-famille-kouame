@@ -39,49 +39,63 @@ io.on('connection', (socket) => {
 
     });
 
-    socket.on('send_message', async (data) => {
+socket.on('send_message', async (data) => {
 
-        try {
+    try {
 
-            const {
+        const {
+            conversation_id,
+            sender_id,
+            message,
+            image,
+            audio,
+            reply_to
+        } = data;
+
+        if (
+            (!message || message.trim() === '') &&
+            !image &&
+            !audio
+        ) {
+            return;
+        }
+
+        const result = await db.query(
+            `
+            INSERT INTO messages
+            (
                 conversation_id,
                 sender_id,
-                message
-            } = data;
+                message,
+                image,
+                audio,
+                reply_to,
+                seen
+            )
+            VALUES
+            ($1,$2,$3,$4,$5,$6,false)
 
-            if (!message || message.trim() === '') {
-                return;
-            }
-
-            const result = await db.query(
-                `
-                INSERT INTO messages
-                (
-                    conversation_id,
-                    sender_id,
-                    message
-                )
-                VALUES ($1,$2,$3)
-                RETURNING *
-                `,
-                [
-                    conversation_id,
-                    sender_id,
-                    message
-                ]
-            );
-
-            const newMessage = result.rows[0];
-
-            io.to('conv_' + conversation_id)
-            .emit('receive_message', {
-
-                id: newMessage.id,
-                message: newMessage.message,
+            RETURNING *
+            `,
+            [
+                conversation_id,
                 sender_id,
-                created_at: newMessage.created_at
+                message || null,
+                image || null,
+                audio || null,
+                reply_to || null
+            ]
+        );
 
-            });
+        const newMessage =
+            result.rows[0];
+
+        io.to(
+            'conv_' + conversation_id
+        ).emit(
+            'receive_message',
+            newMessage
+        );
       const receiver = await db.query(`
 SELECT cu.user_id
 FROM conversation_users cu
@@ -98,8 +112,47 @@ if(receiver.rows.length > 0){
     .emit('new_notification',{
         conversation_id,
         sender_id,
-        message
+                    message:
+                        message ||
+                        '📎 Nouveau fichier'
     });
+    socket.on(
+    'mark_seen',
+    async (
+        conversationId,
+        userId
+    ) => {
+
+        await db.query(
+            `
+            UPDATE messages
+
+            SET
+                seen = true,
+                seen_at = NOW()
+
+            WHERE
+                conversation_id = $1
+            AND
+                sender_id != $2
+            AND
+                seen = false
+            `,
+            [
+                conversationId,
+                userId
+            ]
+        );
+
+        io.to(
+            'conv_' +
+            conversationId
+        ).emit(
+            'messages_seen'
+        );
+
+    }
+);
 
 }
 socket.on('typing', (data) => {
@@ -287,7 +340,52 @@ fileFilter: (req, file, cb) => {
 });
 
 
-// ================= ADMIN =================
+// =================  CHAT-IMG =================
+app.post('/upload-chat-image', upload.single('image'), async (req, res) => {
+
+    try {
+
+        const {
+            conversation_id,
+            sender_id,
+            message
+        } = req.body;
+
+        const result = await cloudinary.uploader.upload(
+            req.file.path,
+            { folder: "chat-images" }
+        );
+
+        fs.unlinkSync(req.file.path);
+
+        const imageUrl = result.secure_url;
+
+        const newMsg = await db.query(
+            `
+            INSERT INTO messages
+            (conversation_id, sender_id, message, image, seen)
+            VALUES ($1,$2,$3,$4,false)
+            RETURNING *
+            `,
+            [
+                conversation_id,
+                sender_id,
+                message || "",
+                imageUrl
+            ]
+        );
+
+        io.to("conv_" + conversation_id)
+        .emit("receive_message", newMsg.rows[0]);
+
+        res.sendStatus(200);
+
+    } catch (err) {
+        console.log(err);
+        res.status(500).send("Erreur upload image");
+    }
+
+});
 
 // ================= CONVERSATIONS =================
 app.get('/conversations', async (req, res) => {
