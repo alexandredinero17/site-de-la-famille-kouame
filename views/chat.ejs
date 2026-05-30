@@ -466,7 +466,13 @@ socket.on("message_edited", data => {
     }
 });
 socket.on("messages_seen_update", () => {
-    location.reload();
+    const checkmarks = document.querySelectorAll(
+        ".message.me .checkmarks"
+    );
+
+    checkmarks.forEach(el => {
+        el.innerText = "✔✔";
+    });
 });
 
 window.addEventListener("focus", () => {
