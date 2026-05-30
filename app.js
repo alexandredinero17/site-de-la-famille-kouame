@@ -869,6 +869,11 @@ app.get('/chat/:username', async (req, res) => {
         }
 
         // recherche conversation existante
+console.log("currentUser.id =", currentUser.id);
+console.log("membre =", membre);
+console.log("membre.id =", membre?.id);
+console.log("SESSION USER:", req.session.user);
+console.log("USERNAME PARAM:", req.params.username);
 let conversationId;
 
 const convResult = await db.query(
@@ -931,9 +936,9 @@ if (convResult.rows.length === 0) {
 
     } catch (err) {
 
-        console.log("ERREUR CHAT :", err);
-
         res.status(500).send("Erreur interne du serveur");
+        console.log("FULL ERROR CHAT:", err);
+console.log(err.stack);
 
     }
 
