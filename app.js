@@ -206,6 +206,7 @@ socket.on("voice_message", async (data) => {
     });
 
 });
+socket.on("messages_seen", async ({ conversationId, userId }) => {
 
     try {
 
@@ -232,6 +233,7 @@ socket.on("voice_message", async (data) => {
             );
         }
 
+
         io.to("conv_" + conversationId)
           .emit("messages_seen_update", {
               userId
@@ -240,6 +242,7 @@ socket.on("voice_message", async (data) => {
     } catch (err) {
         console.log("SEEN ERROR:", err);
     }
+});
 
 
 // ================= SECURITY =================
@@ -932,14 +935,7 @@ app.get('/chat/:username', async (req, res) => {
              ORDER BY created_at ASC`,
             [conversationId]
         );
-
-        return res.render('chat', {
-            membre,
-            user: currentUser,
-            conversationId,
-            messages: messagesResult.rows
-        });
-        // notification receiver (PROPRE + ANTI DOUBLON)
+                // notification receiver (PROPRE + ANTI DOUBLON)
 const receiver = await db.query(
     `SELECT user_id FROM conversation_users
      WHERE conversation_id=$1 AND user_id != $2 LIMIT 1`,
@@ -957,6 +953,14 @@ if (receiver.rows.length > 0) {
         message: message || "📎 Fichier"
     });
 }
+
+        return res.render('chat', {
+            membre,
+            user: currentUser,
+            conversationId,
+            messages: messagesResult.rows
+        });
+
 
     } catch (err) {
         console.log("CHAT ERROR:", err);
