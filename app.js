@@ -206,6 +206,43 @@ socket.on("voice_message", async (data) => {
     });
 
 });
+socket.on("mark_seen", async ({ conversationId, userId }) => {
+
+    try {
+
+        // récupérer messages non vus envoyés par les autres
+        const messages = await db.query(
+            `
+            SELECT id
+            FROM messages
+            WHERE conversation_id = $1
+              AND sender_id != $2
+            `,
+            [conversationId, userId]
+        );
+
+        for (let msg of messages.rows) {
+
+            await db.query(
+                `
+                INSERT INTO message_seen (message_id, user_id)
+                VALUES ($1, $2)
+                ON CONFLICT DO NOTHING
+                `,
+                [msg.id, userId]
+            );
+        }
+
+        io.to("conv_" + conversationId)
+          .emit("messages_seen_update", {
+              userId
+          });
+
+    } catch (err) {
+        console.log("SEEN ERROR:", err);
+    }
+
+});
 
 // ================= SECURITY =================
 app.use(helmet({ contentSecurityPolicy: false }));
@@ -904,6 +941,24 @@ app.get('/chat/:username', async (req, res) => {
             conversationId,
             messages: messagesResult.rows
         });
+        // notification receiver (PROPRE + ANTI DOUBLON)
+const receiver = await db.query(
+    `SELECT user_id FROM conversation_users
+     WHERE conversation_id=$1 AND user_id != $2 LIMIT 1`,
+    [conversation_id, sender_id]
+);
+
+if (receiver.rows.length > 0) {
+
+    const receiverId = receiver.rows[0].user_id;
+
+    io.to("user_" + receiverId).emit("new_notification", {
+        messageId: newMessage.id,   // IMPORTANT
+        conversationId: conversation_id,
+        senderId: sender_id,
+        message: message || "📎 Fichier"
+    });
+}
 
     } catch (err) {
         console.log("CHAT ERROR:", err);
