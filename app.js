@@ -444,6 +444,11 @@ app.use((req, res, next) => {
 
     res.locals.user = req.session.user || null;
 
+    res.locals.successMessage =
+        req.session.successMessage || null;
+
+    delete req.session.successMessage;
+
     next();
 
 });
@@ -571,7 +576,10 @@ app.post('/register', upload.single('photo'), async (req, res) => {
             ]
         );
 
-        return res.redirect('/dashboard');
+       req.session.successMessage =
+"Votre inscription a été effectuée avec succès. Bienvenue dans la Grande Famille Kouamé !";
+
+res.redirect('/');
 
     } catch (err) {
 
