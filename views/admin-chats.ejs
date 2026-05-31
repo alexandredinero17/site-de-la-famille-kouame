@@ -196,7 +196,7 @@
             <div class="chat-info">
 
                 Conversation avec :
-                <b><%= c.user2 || "Utilisateur" %></b>
+                <b><% if(user.username !== membre.username)%></b>
 
             </div>
 
@@ -228,7 +228,9 @@
 
         </div>
 
-    <% }) %>
+  
+          <% }) %>
+    
 
 </div>
 
