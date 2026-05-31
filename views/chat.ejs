@@ -275,6 +275,7 @@ recordBtn.addEventListener("click", async () => {
         mediaRecorder.start();
 
         recordBtn.innerHTML = "⏹️";
+        return;
 
     }else{
 
@@ -448,7 +449,7 @@ socket.on("messages_seen_update", () => {
     );
 
     checkmarks.forEach(el => {
-        el.innerText = "✔✔";
+        innerText = "✔✔";
     });
 });
 
