@@ -637,7 +637,7 @@ if (req.file) {
        req.session.successMessage =
 "Votre inscription a été effectuée avec succès. Bienvenue dans la Grande Famille Kouamé !";
 
-res.redirect('/');
+res.redirect('connexion');
 
     } catch (err) {
 
