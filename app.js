@@ -638,12 +638,11 @@ if (req.file) {
 "Votre inscription a été effectuée avec succès. Bienvenue dans la Grande Famille Kouamé !";
 
 res.redirect('/login');
-
     } catch (err) {
 
-        console.log("🔥 REGISTER ERROR:", err);
+        console.log("REGISTER ERROR:", err);
 
-        return res.status(500).send("Erreur interne serveur register");
+        res.status(500).send("Erreur inscription");
     }
 });
 // ================= LOGIN =================
